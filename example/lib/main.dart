@@ -29,6 +29,7 @@ class UserProfile {
 class AppStorage extends Vault {
   AppStorage();
   late final test = key.integer('test');
+  late final testSecure = key.integerSecure('test');
 }
 
 final storage = AppStorage();
@@ -104,6 +105,18 @@ class _DashboardPageState extends State<DashboardPage> {
                 },
               ),
             ],
+          ),
+          VaultBuilder(
+            vaultKey: storage.test,
+            builder: (context, value) {
+              return Text(value.toString());
+            },
+          ),
+          VaultBuilder(
+            vaultKey: storage.testSecure,
+            builder: (context, value) {
+              return Text(value.toString());
+            },
           ),
           Text(file ?? ''),
           Text(memory ?? ''),

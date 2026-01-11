@@ -7,13 +7,11 @@ class VaultKey<T> {
     required this.fromStorage,
     required this.toStorage,
     this.removable = false,
-    this.encrypted = false,
     this.useExternalStorage = false,
   });
 
   final Vault vault;
   final String name;
-  final bool encrypted;
   final bool removable;
   final bool useExternalStorage;
 
@@ -27,7 +25,6 @@ class VaultKey<T> {
       fromStorage: fromStorage,
       toStorage: toStorage,
       vault: vault,
-      encrypted: encrypted,
       useExternalStorage: useExternalStorage,
     );
   }

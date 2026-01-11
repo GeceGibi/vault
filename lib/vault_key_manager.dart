@@ -17,35 +17,33 @@ class VaultKeyManager {
     );
   }
 
-  VaultKey<int> integer(String name) {
+  VaultKey<int> integer(
+    String name, {
+    bool removable = false,
+    bool useExternalStorage = false,
+  }) {
     return VaultKey<int>(
       name: name,
       vault: _vault,
+      removable: removable,
+      useExternalStorage: useExternalStorage,
       toStorage: (value) => value,
-      fromStorage: (value) {
-        return switch (value) {
-          int() => value,
-          double() => value.toInt(),
-          String() => int.parse(value),
-          _ => null,
-        };
-      },
+      fromStorage: (value) => value as int?,
     );
   }
 
-  VaultKey<double> decimal(String name) {
-    return VaultKey<double>(
+  VaultKeySecure<int> integerSecure(
+    String name, {
+    bool removable = false,
+    bool useExternalStorage = false,
+  }) {
+    return VaultKeySecure<int>(
       name: name,
       vault: _vault,
+      removable: removable,
+      useExternalStorage: useExternalStorage,
       toStorage: (value) => value,
-      fromStorage: (value) {
-        return switch (value) {
-          int() => value.toDouble(),
-          double() => value,
-          String() => double.parse(value),
-          _ => null,
-        };
-      },
+      fromStorage: (value) => value as int?,
     );
   }
 }

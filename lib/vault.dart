@@ -11,7 +11,8 @@ part 'widgets.dart';
 part 'vault_key.dart';
 part 'vault_memory.dart';
 part 'vault_storage.dart';
-part 'vault_key_creator.dart';
+part 'vault_key_manager.dart';
+part 'vault_key_secure.dart';
 
 /// Simple, Singleton-based Vault storage with Field-Level Encryption support.
 class Vault {

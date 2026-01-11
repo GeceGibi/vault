@@ -8,15 +8,19 @@ class VaultBuilder<T> extends StatelessWidget {
   });
 
   final VaultKey<T> vaultKey;
-  final Widget Function(BuildContext context, T value) builder;
+  final Widget Function(BuildContext context, T? value) builder;
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<T>(
-      stream: vaultKey.stream.startWith(vaultKey.value),
-      initialData: vaultKey.value,
+    return StreamBuilder(
+      stream: vaultKey.stream,
       builder: (context, snapshot) {
-        return builder(context, snapshot.data ?? vaultKey.value);
+        return FutureBuilder(
+          future: vaultKey.read(),
+          builder: (context, snapshot) {
+            return builder(context, snapshot.data);
+          },
+        );
       },
     );
   }
