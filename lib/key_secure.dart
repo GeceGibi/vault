@@ -41,6 +41,8 @@ class VaultKeySecure<T> extends VaultKey<T> {
   /// Reads, decrypts, and deserializes the value from storage.
   @override
   Future<V?> read<V>() async {
+    await vault._ensureInitialized;
+
     final data = await super.read<String>();
 
     if (data == null) {
@@ -55,6 +57,8 @@ class VaultKeySecure<T> extends VaultKey<T> {
   /// Serializes, encrypts, and writes the value to storage.
   @override
   Future<void> write(T? value) async {
+    await vault._ensureInitialized;
+
     if (value == null) {
       await remove();
       return;

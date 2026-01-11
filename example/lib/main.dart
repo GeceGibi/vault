@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:vault/vault.dart';
 
 /// Extend Vault to define your storage schema.
@@ -36,8 +35,7 @@ final storage = AppStorage();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final dir = await getApplicationSupportDirectory();
-  await storage.init(path: dir.path, folderName: 'my_app');
+  await storage.init();
   runApp(const MyApp());
 }
 

@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 part 'widgets.dart';
 part 'encrypter.dart';
@@ -60,6 +61,12 @@ class Vault {
   /// Core storage for memory-based vault (main metadata and small values).
   final _internal = _VaultInternalStorage();
 
+  /// Completer for initialization.
+  final Completer<void> _initCompleter = Completer<void>();
+
+  /// Waits for [init] to complete. Safe to call multiple times.
+  Future<void> get _ensureInitialized => _initCompleter.future;
+
   /// Registry of all keys created for this vault.
   final List<VaultKey<dynamic>> _keys = [];
 
@@ -79,10 +86,10 @@ class Vault {
 
   /// Initializes the vault by creating directories and starting storage adapters.
   ///
-  /// [path] specifies the base directory.
+  /// [path] specifies the base directory. Defaults to app support directory.
   /// [folderName] is the name of the folder created inside [path].
-  Future<void> init({String path = '/', String folderName = 'vault'}) async {
-    _path = path;
+  Future<void> init({String? path, String folderName = 'vault'}) async {
+    _path = path ?? (await getApplicationSupportDirectory()).path;
     _folderName = folderName;
 
     await encrypter.init();
@@ -93,6 +100,8 @@ class Vault {
       _internal.init(this),
       _external.init(this),
     ]);
+
+    _initCompleter.complete();
   }
 
   /// Removes all keys marked as `removable: true`.

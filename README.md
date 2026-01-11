@@ -50,15 +50,20 @@ final storage = AppStorage();
 
 ### 2. Initialize
 
-Initialize the storage before running your app, usually in `main()`.
+Initialize the storage before running your app. Path defaults to `getApplicationSupportDirectory()`.
 
 ```dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final dir = await getApplicationSupportDirectory();
-  await storage.init(path: dir.path, folderName: 'my_app');
+  await storage.init(); // Uses app support directory by default
   runApp(const MyApp());
 }
+```
+
+Or specify a custom path:
+
+```dart
+await storage.init(path: '/custom/path', folderName: 'my_vault');
 ```
 
 ### 3. Read & Write

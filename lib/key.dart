@@ -40,7 +40,9 @@ class VaultKey<T> {
   }
 
   /// Returns true if this key currently exists in storage.
-  FutureOr<bool> get exists {
+  FutureOr<bool> get exists async {
+    await vault._ensureInitialized;
+
     try {
       if (useExternalStorage) {
         return vault._external.exists(this);
@@ -62,6 +64,8 @@ class VaultKey<T> {
 
   /// Removes this key from storage.
   Future<void> remove() async {
+    await vault._ensureInitialized;
+
     try {
       if (useExternalStorage) {
         await vault._external.remove(this);
@@ -88,6 +92,8 @@ class VaultKey<T> {
 
   /// Reads the value from storage.
   Future<V?> read<V>() async {
+    await vault._ensureInitialized;
+
     try {
       return switch (useExternalStorage) {
         true => await vault._external.read(this),
@@ -111,6 +117,7 @@ class VaultKey<T> {
   ///
   /// If [value] is null, the key is removed.
   Future<void> write(T? value) async {
+    await vault._ensureInitialized;
     vault._controller.add(this);
 
     if (value == null) {
