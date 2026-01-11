@@ -4,7 +4,7 @@
 
 ## Features
 
-- 🔒 **Secure by Default:** Built-in encryption support for sensitive data.
+- 🔒 **Secure by Default:** Built-in encryption support for sensitive data via `VaultKeySecure`.
 - 🧱 **Type-Safe:** Define keys with specific types (`int`, `bool`, `List<String>`, `CustomObject`) to prevent runtime errors.
 - ⚡ **Reactive:** Listen to changes on specific keys or the entire vault using Streams.
 - 🚀 **Performant:** Uses Isolates for heavy encryption and file I/O to keep the UI smooth.
@@ -22,36 +22,29 @@ dependencies:
 
 ## Usage
 
-### 1. Define your Storage
+### 1. Extend Vault
 
-Extend the `Vault` class to define your storage schema. This creates a central place for all your app's persistent state.
+Create a storage class by extending `Vault` and define your keys as fields.
 
 ```dart
 import 'package:vault/vault.dart';
 
 class AppStorage extends Vault {
   AppStorage() : super(
-    fileVault: DefaultFileVault(),
-    secureKey: 'your-32-char-secure-key-here-for-encryption',
-    storageName: 'app_settings',
+    encrypter: SimpleVaultEncrypter(secureKey: 'your-32-char-key!!'),
   );
 
-  // Standard persistent keys
-  late final themeMode = key.boolean('is_dark');
-  late final counter = key.integer('launch_count');
+  // Standard keys
+  late final counter = key.integer('counter');
+  late final username = key.string('username');
   
-  // Encrypted key (auto-encrypted on write, decrypted on read)
-  late final authToken = secure.string('auth_token');
-
-  // Complex object key
-  late final userProfile = key.custom<UserProfile>(
-    'profile',
-    fromStorage: UserProfile.fromJson,
-    toStorage: (user) => user.toJson(),
-  );
+  // Encrypted keys
+  late final authToken = key.stringSecure('auth_token');
+  
+  // External storage (separate files)
+  late final largeData = key.map('data', useExternalStorage: true);
 }
 
-// Create a global instance
 final storage = AppStorage();
 ```
 
@@ -62,26 +55,24 @@ Initialize the storage before running your app, usually in `main()`.
 ```dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await storage.init();
+  final dir = await getApplicationSupportDirectory();
+  await storage.init(path: dir.path, folderName: 'my_app');
   runApp(const MyApp());
 }
 ```
 
 ### 3. Read & Write
 
-Access your data using the typed keys.
-
 ```dart
 // Write
-await storage.themeMode.write(true);
-await storage.counter.write(42);
+await counter.write(42);
 
 // Read
-final isDark = await storage.themeMode.read(); // returns bool?
-final count = await storage.counter.readSafe(0); // returns int (0 if null)
+final count = await counter.read(); // returns int?
+final safeCount = await counter.readSafe(0); // returns int (0 if null)
 
 // Remove
-await storage.authToken.remove();
+await counter.remove();
 ```
 
 ### 4. Reactive UI
@@ -89,13 +80,10 @@ await storage.authToken.remove();
 Vault provides a simple way to rebuild your UI when data changes.
 
 ```dart
-VaultBuilder<bool>(
-  vaultKey: storage.themeMode,
-  builder: (context, isDark) {
-    return MaterialApp(
-      theme: (isDark ?? false) ? ThemeData.dark() : ThemeData.light(),
-      home: HomePage(),
-    );
+VaultBuilder<int>(
+  vaultKey: storage.counter,
+  builder: (context, value) {
+    return Text('Count: ${value ?? 0}');
   },
 );
 ```
@@ -103,7 +91,8 @@ VaultBuilder<bool>(
 Or listen to the stream directly:
 
 ```dart
-storage.counter.stream.listen((value) {
+storage.counter.stream.listen((key) async {
+  final value = await key.read();
   print('Counter changed to: $value');
 });
 ```
@@ -112,23 +101,21 @@ storage.counter.stream.listen((value) {
 
 ### File System Isolation for Large Data
 
-By default, Vault stores keys in a single JSON file for fast startup. For large data (like long lists or cached API responses), use `useFileSystem: true`. This stores the data in a separate distinct file, keeping the main index light.
+By default, Vault stores keys in a single JSON file for fast startup. For large data (like long lists or cached API responses), use `useExternalStorage: true`. This stores the data in a separate file, keeping the main index light.
 
 ```dart
-// Stored in specific file on disk, not loaded into memory until requested
-late final largeData = key.list<String>(
-  'api_cache', 
-  useFileSystem: true, 
+final largeData = vault.key.integer(
+  'api_cache',
+  useExternalStorage: true,
 );
 ```
 
 ### Secured Keys
 
-Use the `secure` creator instead of `key` to automatically encrypt data before writing to disk.
+Use `integerSecure` (or custom secure keys) to automatically encrypt data before writing to disk.
 
 ```dart
-// The content of this file is AES encrypted on disk
-late final apiKey = secure.string('api_key');
+final apiKey = vault.key.integerSecure('api_key');
 ```
 
 ### Custom Objects
@@ -144,10 +131,28 @@ class UserProfile {
   static UserProfile fromJson(dynamic json) => UserProfile(json['name']);
 }
 
-// In AppStorage
-late final profile = key.custom<UserProfile>(
-  'user_profile',
+final profile = vault.key.custom<UserProfile>(
+  name: 'user_profile',
   fromStorage: UserProfile.fromJson,
   toStorage: (u) => u.toJson(),
 );
 ```
+
+## Documentation
+
+All public APIs are documented with Dartdoc comments. Key classes:
+
+- **`Vault`** – Main storage controller.
+- **`VaultKey<T>`** – Typed key for read/write operations.
+- **`VaultKeySecure<T>`** – Encrypted variant of `VaultKey`.
+- **`VaultKeyManager`** – Factory for creating keys.
+- **`VaultStorage`** – Abstract base for custom storage backends.
+- **`VaultEncrypter`** – Interface for encryption implementations.
+- **`VaultBuilder`** – Reactive widget for UI updates.
+
+## Planned Features
+
+- [ ] Custom serialization support for `VaultKey` (`fromStorage`/`toStorage`)
+- [ ] AES-GCM encryption option
+- [ ] Migration tools for version upgrades
+- [ ] Batch operations

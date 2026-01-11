@@ -1,117 +1,187 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:vault/vault.dart';
 
-// --- 1. Custom Data Model ---
-class UserProfile {
-  final String id;
-  final String bio;
-  final int level;
-
-  UserProfile({required this.id, required this.bio, required this.level});
-
-  Map<String, dynamic> toJson() => {'id': id, 'bio': bio, 'level': level};
-
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      id: json['id'] as String,
-      bio: json['bio'] as String,
-      level: json['level'] as int,
-    );
-  }
-
-  @override
-  String toString() => 'User(id: $id, level: $level)';
-}
-
-// --- 2. Define Vault ---
+/// Extend Vault to define your storage schema.
+/// Keys are defined as class fields - autocomplete friendly!
 class AppStorage extends Vault {
-  AppStorage();
-  late final test = key.integer('test');
-  late final testSecure = key.integerSecure('test');
+  AppStorage()
+      : super(
+          encrypter: SimpleVaultEncrypter(secureKey: 'my-32-char-key-here!!!!'),
+          onError: (e) => print('❌ Error: $e'),
+        );
+
+  // Standard keys
+  late final counter = key.integer('counter');
+  late final username = key.string('username');
+  late final isDarkMode = key.boolean('is_dark_mode');
+  late final rating = key.decimal('rating');
+  late final tags = key.list<String>('tags');
+  late final settings = key.map('settings');
+
+  // Secure keys (encrypted)
+  late final authToken = key.stringSecure('auth_token');
+  late final pinCode = key.integerSecure('pin_code');
+
+  // External storage (separate files)
+  late final largeData = key.map('large_data', useExternalStorage: true);
+  late final secretFile = key.stringSecure(
+    'secret_file',
+    useExternalStorage: true,
+  );
 }
 
+// Global instance
 final storage = AppStorage();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final appSupportDir = await getApplicationSupportDirectory();
-
-  await storage.init(path: appSupportDir.path);
-
+  final dir = await getApplicationSupportDirectory();
+  await storage.init(path: dir.path, folderName: 'my_app');
   runApp(const MyApp());
 }
 
-// --- 3. UI Application ---
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Vault Demo',
-      home: const DashboardPage(),
+      title: 'Vault Test',
+      theme: ThemeData.dark(),
+      home: const TestScreen(),
     );
   }
 }
 
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
-
-  @override
-  State<DashboardPage> createState() => _DashboardPageState();
-}
-
-class _DashboardPageState extends State<DashboardPage> {
-  int? value;
-  String? file;
-  String? memory;
-
-  Future<void> readValue() async {
-    file = storage.internal.rootFile.readAsStringSync();
-    memory = storage.internal.memory.toString();
-    setState(() {});
-  }
+class TestScreen extends StatelessWidget {
+  const TestScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: storage.clear,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Vault Test')),
       body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              await storage.test.update((s) => (s ?? 0) + 1);
-              await storage.testSecure.update((s) => (s ?? 0) + 1);
-              readValue();
-            },
-          ),
-          VaultBuilder(
-            vaultKey: storage.test,
-            builder: (context, value) {
-              return Text('test: $value');
-            },
-          ),
-          VaultBuilder(
-            vaultKey: storage.testSecure,
-            builder: (context, value) {
-              return Text('test-secure: $value');
-            },
-          ),
-          Text(file ?? ''),
-          Text(memory ?? ''),
+          _TestButton('Run All Tests', _runAllTests),
+          const Divider(),
+          _TestButton('Test Standard Keys', _testStandardKeys),
+          _TestButton('Test Secure Keys', _testSecureKeys),
+          _TestButton('Test External Storage', _testExternalStorage),
+          _TestButton('Test Reactivity', _testReactivity),
+          const Divider(),
+          _TestButton('Clear All', _clearAll, color: Colors.red),
         ],
       ),
     );
   }
+}
+
+class _TestButton extends StatelessWidget {
+  const _TestButton(this.label, this.onPressed, {this.color});
+  final String label;
+  final VoidCallback onPressed;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ElevatedButton(
+        style: color != null
+            ? ElevatedButton.styleFrom(backgroundColor: color)
+            : null,
+        onPressed: onPressed,
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+void _runAllTests() async {
+  print('\n=== VAULT TEST START ===\n');
+  await _testStandardKeys();
+  await _testSecureKeys();
+  await _testExternalStorage();
+  await _testReactivity();
+  print('\n=== VAULT TEST COMPLETE ===\n');
+}
+
+Future<void> _testStandardKeys() async {
+  print('--- Standard Keys ---');
+
+  // Integer
+  await storage.counter.write(42);
+
+  print('counter: ${await storage.counter.read()}');
+
+  // String
+  await storage.username.write('JohnDoe');
+  print('username: ${await storage.username.read()}');
+
+  // Boolean
+  await storage.isDarkMode.write(true);
+  print('isDarkMode: ${await storage.isDarkMode.read()}');
+
+  // Double
+  await storage.rating.write(4.5);
+  print('rating: ${await storage.rating.read()}');
+
+  // List
+  await storage.tags.write(['flutter', 'dart', 'vault']);
+  print('tags: ${await storage.tags.read()}');
+
+  // Map
+  await storage.settings.write({'volume': 80, 'notifications': true});
+  print('settings: ${await storage.settings.read()}');
+
+  // Update
+  await storage.counter.update((v) => (v ?? 0) + 1);
+  print('counter after update: ${await storage.counter.read()}');
+}
+
+Future<void> _testSecureKeys() async {
+  print('--- Secure Keys (Encrypted) ---');
+
+  await storage.authToken.write('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+  print('authToken: ${await storage.authToken.read()}');
+
+  await storage.pinCode.write(1234);
+  print('pinCode: ${await storage.pinCode.read()}');
+}
+
+Future<void> _testExternalStorage() async {
+  print('--- External Storage (Separate Files) ---');
+
+  await storage.largeData.write({
+    'users': ['user1', 'user2', 'user3'],
+    'metadata': {'count': 100},
+  });
+  print('largeData: ${await storage.largeData.read()}');
+
+  await storage.secretFile.write('Super secret content');
+  print('secretFile: ${await storage.secretFile.read()}');
+}
+
+Future<void> _testReactivity() async {
+  print('--- Reactivity ---');
+
+  final subscription = storage.counter.stream.listen((k) async {
+    print('Stream: counter changed to ${await k.read()}');
+  });
+
+  await storage.counter.write(100);
+  await storage.counter.write(200);
+  await storage.counter.write(300);
+
+  await Future.delayed(const Duration(milliseconds: 100));
+  await subscription.cancel();
+  print('Stream test complete');
+}
+
+Future<void> _clearAll() async {
+  print('--- Clear All ---');
+  await storage.clear();
+  print('All data cleared');
 }

@@ -5,45 +5,82 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:encrypt/encrypt.dart' as encrypt_lib;
 import 'package:flutter/material.dart';
 
 part 'widgets.dart';
-part 'vault_encrypter.dart';
-part 'vault_key.dart';
-part 'vault_memory.dart';
-part 'vault_storage.dart';
-part 'vault_key_manager.dart';
-part 'vault_key_secure.dart';
+part 'encrypter.dart';
+part 'encrypter_simple.dart';
+part 'key.dart';
+part 'storage_internal.dart';
+part 'storage_external.dart';
+part 'storage.dart';
+part 'key_manager.dart';
+part 'key_secure.dart';
+part 'exception.dart';
 
 /// Simple, Singleton-based Vault storage with Field-Level Encryption support.
 class Vault {
+  /// Creates a new [Vault] instance.
+  ///
+  /// [encrypter] is used for secure keys. Defaults to [SimpleVaultEncrypter].
+  /// [externalStorage] is used for large data. Defaults to [DefaultVaultExternalStorage].
   Vault({
+    this.onError,
     VaultEncrypter? encrypter,
     VaultStorage? externalStorage,
-  }) : external = externalStorage ?? DefaultVaultExternalStorage(),
-       encrypter = encrypter ?? DefaultVaultEncrypter(secureKey: '0' * 32);
+  }) : _external = externalStorage ?? DefaultVaultExternalStorage(),
+       encrypter = encrypter ?? SimpleVaultEncrypter(secureKey: '0' * 32);
 
+  /// The encrypter used for [VaultKeySecure].
+  @protected
   final VaultEncrypter encrypter;
 
-  String _path = '/';
-  String _folderName = 'vault';
+  /// External storage implementation for large datasets.
+  final VaultStorage _external;
+
+  /// Callback invoked when a [VaultException] occurs.
+  void Function(VaultException<dynamic> exception)? onError;
+
+  /// Root directory path of the vault on disk.
+  late String _path;
+
+  /// Name of the folder that stores the vault files.
+  late String _folderName;
+
+  /// The root directory where vault files are stored.
+  @protected
   Directory get root => Directory('$_path/$_folderName');
 
   final StreamController<VaultKey<dynamic>> _controller =
       StreamController<VaultKey<dynamic>>.broadcast();
 
+  /// A stream of key changes.
   Stream<VaultKey<dynamic>> get onChange => _controller.stream;
 
-  /// User can override this to provide their own external storage
-  final VaultStorage external;
+  /// Core storage for memory-based vault (main metadata and small values).
+  final _internal = _VaultInternalStorage();
 
-  /// Core storage for memory-based vault
-  final internal = _VaultInternalStorage();
+  /// Registry of all keys created for this vault.
+  final List<VaultKey<dynamic>> _keys = [];
 
-  /// Key Manager
+  /// Returns all registered keys.
+  List<VaultKey<dynamic>> get keys => List.unmodifiable(_keys);
+
+  /// Returns all removable `true` keys.
+  List<VaultKey<dynamic>> get removableKeys {
+    return List.unmodifiable(_keys.where((k) => k.removable));
+  }
+
+  /// Returns a [VaultKeyManager] to create typed storage keys.
+  ///
+  /// Use this inside subclasses to define key fields.
+  @protected
   VaultKeyManager get key => VaultKeyManager(vault: this);
 
+  /// Initializes the vault by creating directories and starting storage adapters.
+  ///
+  /// [path] specifies the base directory.
+  /// [folderName] is the name of the folder created inside [path].
   Future<void> init({String path = '/', String folderName = 'vault'}) async {
     _path = path;
     _folderName = folderName;
@@ -53,29 +90,27 @@ class Vault {
     await root.create(recursive: true);
 
     await Future.wait([
-      internal.init(this),
-      external.init(this),
+      _internal.init(this),
+      _external.init(this),
     ]);
   }
 
-  /// Key Operations
-  ///
-  FutureOr<bool> exists<T>(VaultKey<T> key) async {
-    return key.useExternalStorage
-        ? await external.exists(key)
-        : internal.exists(key);
+  /// Removes all keys marked as `removable: true`.
+  Future<void> clearRemovable() async {
+    await Future.wait(
+      removableKeys.map((key) => key.remove()),
+    );
+
+    // Notify all removable keys
+    removableKeys.forEach(_controller.add);
   }
 
-  FutureOr<void> remove<T>(VaultKey<T> key) async {
-    if (key.useExternalStorage) {
-      return await external.remove(key);
-    }
-
-    return internal.remove(key);
-  }
-
+  /// Clears all data from both internal and external storage.
   Future<void> clear() async {
-    internal.clear();
-    await external.clear();
+    await _external.clear();
+    _internal.clear();
+
+    // Notify all keys
+    _keys.forEach(_controller.add);
   }
 }
