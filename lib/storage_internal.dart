@@ -48,7 +48,14 @@ class _VaultInternalStorage extends VaultStorage {
       _timer?.cancel();
       _timer = Timer(const Duration(milliseconds: 150), () async {
         final tmp = File('${_rootFile.path}.tmp');
-        await tmp.writeAsString(jsonEncode(memory), flush: true);
+
+        // Capture memory state to avoid concurrent modification issues
+        // during async isolate execution.
+        final currentMemory = Map<String, dynamic>.from(memory);
+
+        final data = await Isolate.run(() => jsonEncode(currentMemory));
+
+        await tmp.writeAsString(data, flush: true);
         await tmp.rename(_rootFile.path);
       });
     } catch (error, stackTrace) {
