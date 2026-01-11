@@ -42,6 +42,8 @@ class _VaultInternalStorage extends VaultStorage {
     unawaited(saveMemory());
   }
 
+  static String _encode(Map<String, dynamic> data) => jsonEncode(data);
+
   Timer? _timer;
   Future<void> saveMemory() async {
     try {
@@ -53,7 +55,7 @@ class _VaultInternalStorage extends VaultStorage {
         // during async isolate execution.
         final currentMemory = Map<String, dynamic>.from(memory);
 
-        final data = await Isolate.run(() => jsonEncode(currentMemory));
+        final data = await Isolate.run(() => _encode(currentMemory));
 
         await tmp.writeAsString(data, flush: true);
         await tmp.rename(_rootFile.path);
