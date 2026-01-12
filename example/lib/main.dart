@@ -143,10 +143,12 @@ Future<void> _testSecureKeys() async {
   print('--- Secure Keys (Encrypted) ---');
 
   await storage.authToken.write('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
-  print('authToken: ${await storage.authToken.read()}');
+  print('authToken (Async): ${await storage.authToken.read()}');
+  print('authToken (Sync) : ${storage.authToken.readSync()}');
 
   await storage.pinCode.write(1234);
-  print('pinCode: ${await storage.pinCode.read()}');
+  print('pinCode (Async): ${await storage.pinCode.read()}');
+  print('pinCode (Sync) : ${storage.pinCode.readSync()}');
 }
 
 Future<void> _testExternalStorage() async {
@@ -156,10 +158,12 @@ Future<void> _testExternalStorage() async {
     'users': ['user1', 'user2', 'user3'],
     'metadata': {'count': 100},
   });
-  print('largeData: ${await storage.largeData.read()}');
+  print('largeData (Async): ${await storage.largeData.read()}');
+  print('largeData (Sync) : ${storage.largeData.readSync()}');
 
   await storage.secretFile.write('Super secret content');
-  print('secretFile: ${await storage.secretFile.read()}');
+  print('secretFile (Async): ${await storage.secretFile.read()}');
+  print('secretFile (Sync) : ${storage.secretFile.readSync()}');
 }
 
 Future<void> _testReactivity() async {
