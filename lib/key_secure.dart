@@ -38,6 +38,33 @@ class VaultKeySecure<T> extends VaultKey<T> {
   @override
   String get name => hashedName;
 
+  @override
+  T? readSync() {
+    try {
+      final encryptedData = switch (useExternalStorage) {
+        true => vault.external.readSync<String>(this),
+        false => vault.internal.readSync<String>(this),
+      };
+
+      if (encryptedData == null) {
+        return null;
+      }
+
+      final decrypted = vault.encrypter.decryptSync(encryptedData);
+      return fromStorage(jsonDecode(decrypted));
+    } catch (error, stackTrace) {
+      final exception = toException(
+        error.toString(),
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      vault.onError?.call(exception);
+      unawaited(remove());
+      return null;
+    }
+  }
+
   /// Reads, decrypts, and deserializes the value from storage.
   @override
   Future<T?> read() async {

@@ -14,6 +14,18 @@ abstract class VaultEncrypter {
   /// Encrypts the given [data] and returns a base64 string.
   FutureOr<String> encrypt(String data);
 
+  /// Synchronously encrypts the given [data].
+  ///
+  /// Used by [VaultKey.readSync] and [VaultKey.writeSync] (if applicable).
+  /// If your encryption is purely async, throw [UnimplementedError].
+  String encryptSync(String data);
+
   /// Decrypts the given [data] and returns the original string content.
   FutureOr<String> decrypt(String data);
+
+  /// Synchronously decrypts the given [data].
+  ///
+  /// Used by [VaultKey.readSync].
+  /// If your encryption is purely async, throw [UnimplementedError].
+  String decryptSync(String data);
 }

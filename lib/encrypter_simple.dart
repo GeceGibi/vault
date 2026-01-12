@@ -16,20 +16,25 @@ class SimpleVaultEncrypter extends VaultEncrypter {
   Future<void> init() async {}
 
   @override
-  String encrypt(Object? value) {
-    final text = jsonEncode(value);
+  String encrypt(String data) => encryptSync(data);
+
+  @override
+  String encryptSync(String data) {
     final result = <int>[];
-    for (var i = 0; i < text.length; i++) {
+    for (var i = 0; i < data.length; i++) {
       result.add(
-        text.codeUnitAt(i) ^ secureKey.codeUnitAt(i % secureKey.length),
+        data.codeUnitAt(i) ^ secureKey.codeUnitAt(i % secureKey.length),
       );
     }
     return base64Encode(result);
   }
 
   @override
-  String decrypt(String value) {
-    final bytes = base64Decode(value);
+  String decrypt(String data) => decryptSync(data);
+
+  @override
+  String decryptSync(String data) {
+    final bytes = base64Decode(data);
     final result = <int>[];
     for (var i = 0; i < bytes.length; i++) {
       result.add(bytes[i] ^ secureKey.codeUnitAt(i % secureKey.length));
