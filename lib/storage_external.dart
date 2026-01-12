@@ -103,6 +103,9 @@ class DefaultVaultExternalStorage extends VaultStorage {
   }
 
   @override
+  bool existsSync(VaultKey<dynamic> key) => getEntry<File>(key).existsSync();
+
+  @override
   bool exists(VaultKey<dynamic> key) {
     try {
       return getEntry<File>(key).existsSync();

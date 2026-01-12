@@ -28,6 +28,9 @@ abstract class VaultStorage {
   /// Checks if an entry exists for [key].
   FutureOr<bool> exists(VaultKey<dynamic> key);
 
+  /// Synchronously checks if an entry exists for [key].
+  bool existsSync(VaultKey<dynamic> key);
+
   /// Returns a list of all raw entries in this storage.
   FutureOr<List<E>> getEntries<E>();
 

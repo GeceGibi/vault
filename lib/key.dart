@@ -62,6 +62,27 @@ class VaultKey<T> {
     }
   }
 
+  /// Synchronously checks if this key currently exists in storage.
+  bool get existsSync {
+    try {
+      if (useExternalStorage) {
+        return vault._external.existsSync(this);
+      }
+
+      return vault._internal.existsSync(this);
+    } catch (e, s) {
+      final exception = toException(
+        e.toString(),
+        error: e,
+        stackTrace: s,
+      );
+
+      vault.onError?.call(exception);
+
+      throw exception;
+    }
+  }
+
   /// Removes this key from storage.
   Future<void> remove() async {
     await vault._ensureInitialized;

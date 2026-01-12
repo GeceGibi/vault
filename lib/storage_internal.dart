@@ -74,6 +74,9 @@ class _VaultInternalStorage extends VaultStorage {
   bool exists(VaultKey<dynamic> key) => memory.containsKey(key.name);
 
   @override
+  bool existsSync(VaultKey<dynamic> key) => exists(key);
+
+  @override
   FutureOr<List<E>> getEntries<E>() => memory.entries.toList().cast<E>();
 
   @override
