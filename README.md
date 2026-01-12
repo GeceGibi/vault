@@ -72,9 +72,12 @@ await storage.init(path: '/custom/path', folderName: 'my_vault');
 // Write
 await counter.write(42);
 
-// Read
+// Read (Async)
 final count = await counter.read(); // returns int?
 final safeCount = await counter.readSafe(0); // returns int (0 if null)
+
+// Read (Sync) - Great for non-async contexts
+final syncCount = counter.readSync();
 
 // Remove
 await counter.remove();

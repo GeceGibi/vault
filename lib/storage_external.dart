@@ -179,4 +179,13 @@ class DefaultVaultExternalStorage extends VaultStorage {
       throw exception;
     }
   }
+
+  /// Synchronously reads the file content.
+  ///
+  /// This operation blocks the thread until the file is read.
+  @override
+  V? readSync<V>(VaultKey<dynamic> key) {
+    final file = getEntry<File>(key);
+    return jsonDecode(file.readAsStringSync()) as V?;
+  }
 }

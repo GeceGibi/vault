@@ -90,6 +90,31 @@ class VaultKey<T> {
     return (await read()) ?? defaultValue;
   }
 
+  /// Synchronously reads the value from storage.
+  ///
+  /// **WARNING:** This method assumes the vault is already initialized.
+  /// Calling this before [init] completes may throw an error or cause unexpected behavior.
+  /// For external storage, this performs a blocking I/O operation.
+  T? readSync() {
+    try {
+      return switch (useExternalStorage) {
+        true => vault._external.readSync(this),
+        false => vault._internal.readSync(this),
+      };
+    } catch (error, stackTrace) {
+      final exception = toException(
+        error.toString(),
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      vault.onError?.call(exception);
+
+      unawaited(remove());
+      return null;
+    }
+  }
+
   /// Reads the value from storage.
   Future<T?> read() async {
     await vault._ensureInitialized;

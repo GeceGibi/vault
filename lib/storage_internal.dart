@@ -97,4 +97,7 @@ class _VaultInternalStorage extends VaultStorage {
     memory.remove(key.name);
     unawaited(saveMemory());
   }
+
+  @override
+  V? readSync<V>(VaultKey<dynamic> key) => read(key);
 }

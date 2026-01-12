@@ -11,6 +11,11 @@ abstract class VaultStorage {
   /// Gets the raw storage object (e.g., [File]) for a given [key].
   F getEntry<F>(VaultKey<dynamic> key);
 
+  /// Synchronously reads content from storage.
+  ///
+  /// This bypasses the async queue for external storage and may block the UI thread.
+  V? readSync<V>(VaultKey<dynamic> key);
+
   /// Reads content from storage for the specified [key].
   FutureOr<V?> read<V>(VaultKey<dynamic> key);
 
