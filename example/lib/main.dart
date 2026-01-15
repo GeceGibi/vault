@@ -23,8 +23,8 @@ class AppStorage extends Keep {
   final pinCode = Keep.integerSecure('pin_code');
 
   // External storage (separate files)
-  final largeData = Keep.map('large_data', useExternalStorage: true);
-  final secretFile = Keep.stringSecure('secret_file', useExternalStorage: true);
+  final largeData = Keep.map('large_data', useExternal: true);
+  final secretFile = Keep.stringSecure('secret_file', useExternal: true);
 }
 
 // Global instance

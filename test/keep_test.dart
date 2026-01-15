@@ -17,12 +17,12 @@ class TestKeep extends Keep {
 
   final extData = Keep.string(
     'ext_data',
-    useExternalStorage: true,
+    useExternal: true,
   );
 
   final extSecure = Keep.stringSecure(
     'ext_secure',
-    useExternalStorage: true,
+    useExternal: true,
   );
 }
 

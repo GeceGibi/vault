@@ -48,7 +48,7 @@ class AppStorage extends Keep {
   final counter = Keep.integer('counter');
   final username = Keep.string('username');
   final authToken = Keep.stringSecure('auth_token');
-  final settings = Keep.map('settings', useExternalStorage: true);
+  final settings = Keep.map('settings', useExternal: true);
 }
 
 final storage = AppStorage();
@@ -157,7 +157,7 @@ class SecureAppStorage extends Keep {
 
 ### Custom Storage Adapter
 
-Implement `KeepStorage` to change how external keys (those with `useExternalStorage: true`) are persisted. This is useful for storing large blobs in a local database like SQLite or a NoSQL solution.
+Implement `KeepStorage` to change how external keys (those with `useExternal: true`) are persisted. This is useful for storing large blobs in a local database like SQLite or a NoSQL solution.
 
 ```dart
 class MyDatabaseStorage extends KeepStorage {
@@ -221,7 +221,7 @@ class AppStorage extends Keep {
   );
 
   // This key will now use MyDatabaseStorage instead of the file system
-  final largeLogs = Keep.list('logs', useExternalStorage: true);
+  final largeLogs = Keep.list('logs', useExternal: true);
 }
 ```
 

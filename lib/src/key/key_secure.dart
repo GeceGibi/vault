@@ -13,14 +13,14 @@ class KeepKeySecure<T> extends KeepKey<T> {
   /// [fromStorage] maps the decrypted JSON object back to type [T].
   /// [toStorage] maps type [T] to a JSON-encodable object.
   /// [removable] indicates if the key should be cleared by [Keep.clearRemovable].
-  /// [useExternalStorage] indicates if the value should be stored in its own file.
+  /// [useExternal] indicates if the value should be stored in its own file.
   /// [storage] is an optional custom storage adapter for this specific key.
   KeepKeySecure({
     required super.name,
     required this.fromStorage,
     required this.toStorage,
     super.removable,
-    super.useExternalStorage,
+    super.useExternal,
     super.storage,
   });
 
@@ -30,7 +30,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
     final key = KeepKeySecure<T>(
       name: '${super.name}.$subKeyName',
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
@@ -68,7 +68,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
   @override
   T? readSync() {
     try {
-      final encrypted = switch (useExternalStorage) {
+      final encrypted = switch (useExternal) {
         true => externalStorage.readSync<String>(this),
         false => keep.internalStorage.readSync<String>(this),
       };
@@ -100,7 +100,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
     await keep.ensureInitialized;
 
     try {
-      final encrypted = switch (useExternalStorage) {
+      final encrypted = switch (useExternal) {
         true => await externalStorage.read<String>(this),
         false => await keep.internalStorage.read<String>(this),
       };
@@ -150,7 +150,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
 
     keep.onChangeController.add(this);
 
-    if (useExternalStorage) {
+    if (useExternal) {
       await externalStorage.write(this, encrypted);
     } else {
       await keep.internalStorage.write(this, encrypted);

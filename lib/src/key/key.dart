@@ -20,18 +20,18 @@ part 'key_secure.dart';
 abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   /// [name] is the unique identifier for this key.
   /// [removable] indicates if the key should be cleared by [Keep.clearRemovable].
-  /// [useExternalStorage] indicates if the value should be stored in its own file.
+  /// [useExternal] indicates if the value should be stored in its own file.
   /// [storage] is an optional custom storage adapter for this specific key.
   KeepKey({
     required this.name,
     this.removable = false,
-    bool? useExternalStorage,
+    bool? useExternal,
     this.storage,
-  }) : useExternalStorage = useExternalStorage ?? (storage != null);
+  }) : useExternal = useExternal ?? (storage != null);
 
   /// Whether this key should use external (file-based or custom) storage.
   /// Defaults to true if a custom [storage] is provided.
-  final bool useExternalStorage;
+  final bool useExternal;
 
   /// The custom storage adapter for this key. Fallbacks to [Keep.externalStorage].
   final KeepStorage? storage;
@@ -102,7 +102,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
     await keep.ensureInitialized;
 
     try {
-      if (useExternalStorage) {
+      if (useExternal) {
         return keep.externalStorage.exists(this);
       }
 
@@ -125,7 +125,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   /// **Warning:** This method may throw if called before [Keep.init].
   bool get existsSync {
     try {
-      if (useExternalStorage) {
+      if (useExternal) {
         return keep.externalStorage.existsSync(this);
       }
 
@@ -187,7 +187,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
     await keep.ensureInitialized;
 
     try {
-      if (useExternalStorage) {
+      if (useExternal) {
         await keep.externalStorage.remove(this);
       } else {
         await keep.internalStorage.remove(this);

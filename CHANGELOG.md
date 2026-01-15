@@ -1,5 +1,9 @@
-## [0.1.0]
+## [0.1.1]
+### Changed
+- **`useExternalStorage`** renamed to **`useExternal`**.
 
+
+## [0.1.0]
 ### Added
 - **`KeepKeyPlain` Converters:** Added `fromStorage` and `toStorage` support to `KeepKeyPlain`, enabling custom serialization and deserialization for non-encrypted keys.
 - **Factory Type Safety:** Enhanced `Keep.list` and `Keep.map` factories with automatic `cast<T>()` and `cast<String, dynamic>()` support to prevent `List<dynamic>` to `List<String>` type cast errors from JSON.

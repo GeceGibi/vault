@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -99,7 +98,7 @@ class Keep {
   static KeepKeyPlain<int> integer(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
     int? Function(Object? value)? fromStorage,
     Object? Function(int value)? toStorage,
@@ -107,7 +106,7 @@ class Keep {
     final key = KeepKeyPlain<int>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
@@ -122,13 +121,13 @@ class Keep {
   static KeepKeySecure<int> integerSecure(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
   }) {
     final key = KeepKeySecure<int>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is int ? v : (v is String ? int.tryParse(v) : null),
@@ -143,7 +142,7 @@ class Keep {
   static KeepKeyPlain<String> string(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
     String? Function(Object? value)? fromStorage,
     Object? Function(String value)? toStorage,
@@ -151,7 +150,7 @@ class Keep {
     final key = KeepKeyPlain<String>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
@@ -166,13 +165,13 @@ class Keep {
   static KeepKeySecure<String> stringSecure(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
   }) {
     final key = KeepKeySecure<String>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v?.toString(),
@@ -185,7 +184,7 @@ class Keep {
   static KeepKeyPlain<bool> boolean(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
     bool? Function(Object? value)? fromStorage,
     Object? Function(bool value)? toStorage,
@@ -193,7 +192,7 @@ class Keep {
     final key = KeepKeyPlain<bool>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
@@ -208,13 +207,13 @@ class Keep {
   static KeepKeySecure<bool> booleanSecure(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
   }) {
     final key = KeepKeySecure<bool>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is bool ? v : (v == 'true' || v == 1),
@@ -227,7 +226,7 @@ class Keep {
   static KeepKeyPlain<double> decimal(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
     double? Function(Object? value)? fromStorage,
     Object? Function(double value)? toStorage,
@@ -235,7 +234,7 @@ class Keep {
     final key = KeepKeyPlain<double>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
@@ -250,13 +249,13 @@ class Keep {
   static KeepKeySecure<double> decimalSecure(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
   }) {
     final key = KeepKeySecure<double>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) =>
@@ -270,7 +269,7 @@ class Keep {
   static KeepKeyPlain<Map<String, dynamic>> map(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
     Map<String, dynamic>? Function(Object? value)? fromStorage,
     Object? Function(Map<String, dynamic> value)? toStorage,
@@ -278,7 +277,7 @@ class Keep {
     final key = KeepKeyPlain<Map<String, dynamic>>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage:
           fromStorage ?? (v) => v is Map ? v.cast<String, dynamic>() : null,
@@ -293,13 +292,13 @@ class Keep {
   static KeepKeySecure<Map<String, dynamic>> mapSecure(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
   }) {
     final key = KeepKeySecure<Map<String, dynamic>>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is Map ? v.cast<String, dynamic>() : null,
@@ -312,7 +311,7 @@ class Keep {
   static KeepKeyPlain<List<T>> list<T>(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
     List<T>? Function(Object? value)? fromStorage,
     Object? Function(List<T> value)? toStorage,
@@ -320,7 +319,7 @@ class Keep {
     final key = KeepKeyPlain<List<T>>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage: fromStorage ?? (v) => v is List ? v.cast<T>() : null,
       toStorage: toStorage,
@@ -334,13 +333,13 @@ class Keep {
   static KeepKeySecure<List<T>> listSecure<T>(
     String name, {
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
   }) {
     final key = KeepKeySecure<List<T>>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is List ? v.cast<T>() : null,
@@ -355,13 +354,13 @@ class Keep {
     required T? Function(Object? value) fromStorage,
     required Object? Function(T value) toStorage,
     bool removable = false,
-    bool useExternalStorage = false,
+    bool useExternal = false,
     KeepStorage? storage,
   }) {
     final key = KeepKeySecure<T>(
       name: name,
       removable: removable,
-      useExternalStorage: useExternalStorage,
+      useExternal: useExternal,
       storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
@@ -386,25 +385,6 @@ class Keep {
       internalStorage.init(this),
       externalStorage.init(this),
     ]);
-
-    // Discovery Logic for Internal Secure Keys:
-    // If a key has flagSecure, its payload is an encrypted JSON wrapper: { 'k': 'real_name', 'v': value }
-    // We need this 'k' to correctly map hashed names back to original names in the registry.
-    for (final entry in internalStorage.memory.entries) {
-      if ((entry.value.flags & KeepCodec.flagSecure) != 0) {
-        try {
-          final encrypted = entry.value.value as String;
-          final decrypted = encrypter.decryptSync(encrypted);
-          jsonDecode(decrypted);
-
-          // We don't register the full KeepKey object yet (lazy-loading),
-          // but we can at least keep a placeholder or just know it exists.
-          // For now, the 'keys' getter will handle the mapping.
-        } catch (_) {
-          // If decryption fails, likely a corrupted entry or wrong key.
-        }
-      }
-    }
 
     _initCompleter.complete();
   }
