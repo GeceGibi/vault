@@ -1,11 +1,16 @@
 part of 'keep.dart';
 
 /// A specialized [KeepKey] that automatically encrypts and decrypts data
-/// using the keep's [KeepEncrypter].
+/// before it reaches the storage layer.
 ///
-/// The key name is hashed with DJB2 for path obfuscation.
+/// [KeepKeySecure] uses the [KeepEncrypter] provided to the [Keep] instance
+/// to secure the data. Additionally, the key's [name] is hashed using the
+/// DJB2 algorithm to obfuscate its identity on the physical disk/storage.
 class KeepKeySecure<T> extends KeepKey<T> {
   /// Creates a [KeepKeySecure].
+  ///
+  /// - [fromStorage]: Maps the decrypted JSON object back to type [T].
+  /// - [toStorage]: Maps type [T] to a JSON-encodable object.
   KeepKeySecure({
     required super.name,
     required super.keep,
@@ -15,13 +20,29 @@ class KeepKeySecure<T> extends KeepKey<T> {
     super.useExternalStorage,
   });
 
+  /// Creates a sub-key by appending [subKeyName] to the current [name].
+  @override
+  KeepKeySecure<T> call(Object? subKeyName) {
+    return KeepKeySecure<T>(
+      name: '${super.name}.$subKeyName',
+      keep: keep,
+      removable: removable,
+      useExternalStorage: useExternalStorage,
+      fromStorage: fromStorage,
+      toStorage: toStorage,
+    );
+  }
+
   /// Converts raw storage data to typed object [T].
   final T? Function(Object? value) fromStorage;
 
   /// Converts typed object [T] to raw storage data.
   final Object? Function(T value) toStorage;
 
-  /// Generates the hashed name for a given [key].
+  /// Generates a non-reversible hash for a given [key] name using DJB2.
+  ///
+  /// This is used to prevent the real key name from appearing in the storage
+  /// (e.g., as a filename or a key in a map), providing an extra layer of privacy.
   static String generateHash(String key) {
     final bytes = utf8.encode(key);
     var hash = 5381; // DJB2 starting value
@@ -35,7 +56,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
     return hash.toUnsigned(64).toRadixString(36);
   }
 
-  /// Returns key name hashed with DJB2 for path obscuring.
+  /// Returns the [name] hashed with DJB2 for storage obfuscation.
   String get hashedName => generateHash(super.name);
 
   @override
@@ -44,16 +65,16 @@ class KeepKeySecure<T> extends KeepKey<T> {
   @override
   T? readSync() {
     try {
-      final encryptedData = switch (useExternalStorage) {
+      final encrypted = switch (useExternalStorage) {
         true => keep.external.readSync<String>(this),
         false => keep.internal.readSync<String>(this),
       };
 
-      if (encryptedData == null) {
+      if (encrypted == null) {
         return null;
       }
 
-      final decrypted = keep.encrypter.decryptSync(encryptedData);
+      final decrypted = keep.encrypter.decryptSync(encrypted);
       return fromStorage(jsonDecode(decrypted));
     } catch (error, stackTrace) {
       final exception = toException(
@@ -68,22 +89,22 @@ class KeepKeySecure<T> extends KeepKey<T> {
     }
   }
 
-  /// Reads, decrypts, and deserializes the value from storage.
+  /// Reads the encrypted string from storage, decrypts it, and maps it to [T].
   @override
   Future<T?> read() async {
     await keep._ensureInitialized;
 
     try {
-      final encryptedData = switch (useExternalStorage) {
+      final encrypted = switch (useExternalStorage) {
         true => await keep.external.read<String>(this),
         false => await keep.internal.read<String>(this),
       };
 
-      if (encryptedData == null) {
+      if (encrypted == null) {
         return null;
       }
 
-      final decrypted = await keep.encrypter.decrypt(encryptedData);
+      final decrypted = await keep.encrypter.decrypt(encrypted);
       return fromStorage(await compute(jsonDecode, decrypted));
     } catch (error, stackTrace) {
       final exception = toException(
@@ -99,7 +120,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
     }
   }
 
-  /// Serializes, encrypts, and writes the value to storage.
+  /// Maps [value] to JSON, encrypts the result, and writes it to storage.
   @override
   Future<void> write(T? value) async {
     await keep._ensureInitialized;
@@ -108,6 +129,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
       await remove();
       return;
     }
+
     final storageValue = toStorage(value);
 
     final encrypted = await keep.encrypter.encrypt(
@@ -119,7 +141,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
     if (useExternalStorage) {
       await keep.external.write(this, encrypted);
     } else {
-      keep.internal.write(this, encrypted);
+      await keep.internal.write(this, encrypted);
     }
   }
 }

@@ -9,6 +9,7 @@ part of 'keep.dart';
 /// Instances of [KeepEntry] are immutable and are used during:
 /// - In-memory storage (Internal Keep)
 /// - Binary serialization (External Keep)
+@immutable
 class KeepEntry {
   /// Creates a new keep entry with the given [value] and [flags].
   const KeepEntry(this.value, this.flags);

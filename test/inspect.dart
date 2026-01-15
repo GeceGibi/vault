@@ -10,19 +10,17 @@ class TestKeep extends Keep {
         ),
       );
 
-  KeepKey<String> get username => key.string('username');
-  KeepKey<String> get username2 => key.string('username');
-  KeepKey<String> get username3 => key.string('username');
-  KeepKeySecure<String> get secureToken => key.stringSecure(
+  KeepKey<String> get username => keep.string('username');
+  KeepKeySecure<String> get secureToken => keep.stringSecure(
     'token',
   ); // Internal Secure
 
-  KeepKey<String> get extData => key.string(
+  KeepKey<String> get extData => keep.string(
     'ext_data',
     useExternalStorage: true,
   ); // External
 
-  KeepKeySecure<String> get extSecure => key.stringSecure(
+  KeepKeySecure<String> get extSecure => keep.stringSecure(
     'ext_secure',
     useExternalStorage: true,
   ); // External Secure
@@ -43,14 +41,12 @@ void main() {
     final storage = TestKeep();
     await storage.init(path: dir.path);
 
+    print(await storage.keys);
+    print(await storage.keysExternal);
+
     // 1. Internal Plain
     print('Internal Plain: ${await storage.username.read()}');
-    print('Internal Plain 2: ${await storage.username2.read()}');
-    print('Internal Plain 3: ${await storage.username3.read()}');
-    ;
     await storage.username.write('john_doe_plain');
-
-    print(storage.keys);
 
     // 2. Internal Secure
     print('Internal Secure: ${await storage.secureToken.read()}');

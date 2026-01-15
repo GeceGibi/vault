@@ -1,22 +1,23 @@
 part of 'keep.dart';
 
-/// Factory for creating typed [KeepKey] and [KeepKeySecure] instances.
+/// Factory for creating typed [KeepKeyPlain] and [KeepKeySecure] instances.
 ///
-/// Access via [Keep.key] to create storage keys with built-in serialization.
+/// Use [KeepKeyManager] to define your storage schema. It provides helpers
+/// for common types and allows creating both plain and encrypted keys.
 class KeepKeyManager {
-  /// Creates a [KeepKeyManager] linked to a [keep].
+  /// Creates a [KeepKeyManager] linked to a [Keep] instance.
   KeepKeyManager({required Keep keep}) : _keep = keep;
   final Keep _keep;
 
   /// Creates a standard [int] key.
-  KeepKey<int> integer(
+  KeepKeyPlain<int> integer(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
     return _keep._registerKey(
       name,
-      () => KeepKey<int>(
+      () => KeepKeyPlain<int>(
         name: name,
         keep: _keep,
         removable: removable,
@@ -25,7 +26,7 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates an encrypted [int] key using [KeepKeySecure].
+  /// Creates an encrypted [int] key.
   KeepKeySecure<int> integerSecure(
     String name, {
     bool removable = false,
@@ -51,14 +52,14 @@ class KeepKeyManager {
   }
 
   /// Creates a standard [String] key.
-  KeepKey<String> string(
+  KeepKeyPlain<String> string(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
     return _keep._registerKey(
       name,
-      () => KeepKey<String>(
+      () => KeepKeyPlain<String>(
         name: name,
         keep: _keep,
         removable: removable,
@@ -67,7 +68,7 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates an encrypted [String] key using [KeepKeySecure].
+  /// Creates an encrypted [String] key.
   KeepKeySecure<String> stringSecure(
     String name, {
     bool removable = false,
@@ -87,14 +88,14 @@ class KeepKeyManager {
   }
 
   /// Creates a standard [bool] key.
-  KeepKey<bool> boolean(
+  KeepKeyPlain<bool> boolean(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
     return _keep._registerKey(
       name,
-      () => KeepKey<bool>(
+      () => KeepKeyPlain<bool>(
         name: name,
         keep: _keep,
         removable: removable,
@@ -103,7 +104,7 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates an encrypted [bool] key using [KeepKeySecure].
+  /// Creates an encrypted [bool] key.
   KeepKeySecure<bool> booleanSecure(
     String name, {
     bool removable = false,
@@ -129,14 +130,14 @@ class KeepKeyManager {
   }
 
   /// Creates a standard [double] key.
-  KeepKey<double> decimal(
+  KeepKeyPlain<double> decimal(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
     return _keep._registerKey(
       name,
-      () => KeepKey<double>(
+      () => KeepKeyPlain<double>(
         name: name,
         keep: _keep,
         removable: removable,
@@ -145,7 +146,7 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates an encrypted [double] key using [KeepKeySecure].
+  /// Creates an encrypted [double] key.
   KeepKeySecure<double> decimalSecure(
     String name, {
     bool removable = false,
@@ -171,15 +172,15 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates a [Map<String, dynamic>] key.
-  KeepKey<Map<String, dynamic>> map(
+  /// Creates a standard [Map] key.
+  KeepKeyPlain<Map<String, dynamic>> map(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
     return _keep._registerKey(
       name,
-      () => KeepKey<Map<String, dynamic>>(
+      () => KeepKeyPlain<Map<String, dynamic>>(
         name: name,
         keep: _keep,
         removable: removable,
@@ -188,7 +189,7 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates an encrypted [Map<String, dynamic>] key.
+  /// Creates an encrypted [Map] key.
   KeepKeySecure<Map<String, dynamic>> mapSecure(
     String name, {
     bool removable = false,
@@ -212,15 +213,15 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates a [List<T>] key.
-  KeepKey<List<T>> list<T>(
+  /// Creates a standard [List] key.
+  KeepKeyPlain<List<T>> list<T>(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
     return _keep._registerKey(
       name,
-      () => KeepKey<List<T>>(
+      () => KeepKeyPlain<List<T>>(
         name: name,
         keep: _keep,
         removable: removable,
@@ -229,7 +230,7 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates an encrypted [List<T>] key.
+  /// Creates an encrypted [List] key.
   KeepKeySecure<List<T>> listSecure<T>(
     String name, {
     bool removable = false,
@@ -253,7 +254,7 @@ class KeepKeyManager {
     );
   }
 
-  /// Creates a custom encrypted key with serialization.
+  /// Creates a custom encrypted key with specialized serialization.
   KeepKeySecure<T> custom<T>({
     required String name,
     required T? Function(Object? value) fromStorage,

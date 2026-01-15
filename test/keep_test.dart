@@ -11,16 +11,16 @@ class TestKeep extends Keep {
         ),
       );
 
-  late final counter = key.integer('counter');
-  late final username = key.string('username');
-  late final secureToken = key.stringSecure('token');
+  late final counter = keep.integer('counter');
+  late final username = keep.string('username');
+  late final secureToken = keep.stringSecure('token');
 
-  late final extData = key.string(
+  late final extData = keep.string(
     'ext_data',
     useExternalStorage: true,
   );
 
-  late final extSecure = key.stringSecure(
+  late final extSecure = keep.stringSecure(
     'ext_secure',
     useExternalStorage: true,
   );

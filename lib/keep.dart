@@ -15,6 +15,7 @@ part 'exception.dart';
 part 'key.dart';
 part 'key_manager.dart';
 part 'key_secure.dart';
+part 'key_plain.dart';
 part 'storage.dart';
 part 'storage_external.dart';
 part 'storage_internal.dart';
@@ -70,11 +71,9 @@ class Keep {
   /// Waits for [init] to complete. Safe to call multiple times.
   Future<void> get _ensureInitialized => _initCompleter.future;
 
-  /// Registry of all keys created for this keep.
+  /// Registry of all [KeepKey] created for this keep.
+  /// [KeepKey] is lazy, so it's not represent all keys in the storage.
   final Map<String, KeepKey<dynamic>> _registry = {};
-
-  /// Returns all registered keys.
-  List<KeepKey<dynamic>> get keys => List.unmodifiable(_registry.values);
 
   /// Registers or retrieves a key from the registry.
   ///
@@ -99,16 +98,11 @@ class Keep {
     return newKey;
   }
 
-  /// Returns all removable `true` keys.
-  List<KeepKey<dynamic>> get removableKeys {
-    return List.unmodifiable(_registry.values.where((k) => k.removable));
-  }
-
   /// Returns a [KeepKeyManager] to create typed storage keys.
   ///
   /// Use this inside subclasses to define key fields.
   @protected
-  KeepKeyManager get key => KeepKeyManager(keep: this);
+  KeepKeyManager get keep => KeepKeyManager(keep: this);
 
   /// Initializes the keep by creating directories and starting storage adapters.
   ///
@@ -128,6 +122,26 @@ class Keep {
     ]);
 
     _initCompleter.complete();
+  }
+
+  /// Returns all registered keys for not external storage.
+  List<KeepEntry> get keys {
+    return List.unmodifiable(internal.getEntries<KeepEntry>());
+  }
+
+  /// Returns all removable `true` keys.
+  List<KeepKey<KeepEntry>> get removableKeys {
+    return List.unmodifiable(keys.where((k) => k.isRemovable));
+  }
+
+  /// Returns all registered keys for external storage.
+  Future<List<dynamic>> get keysExternal async {
+    return List.unmodifiable(await external.getEntries());
+  }
+
+  /// Returns all removable `true` keys for external storage.
+  List<KeepKey<dynamic>> get removableKeysExternal {
+    return List.unmodifiable(_registry.values.where((k) => k.removable));
   }
 
   /// Removes all keys marked as `removable: true` from the keep.

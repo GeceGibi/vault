@@ -8,7 +8,7 @@ class KeepException<T> implements Exception {
   /// The error message.
   final String message;
 
-  /// The associated [KeepKey], if any.
+  /// The associated [KeepKeyBase], if any.
   final KeepKey<T>? key;
 
   /// The underlying error object.

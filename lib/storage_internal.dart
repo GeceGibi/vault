@@ -49,7 +49,9 @@ class _KeepInternalStorage extends KeepStorage {
 
   /// Saves the current memory state to disk.
   Future<void> saveMemory() async {
-    if (_saveDebounce?.isActive ?? false) _saveDebounce!.cancel();
+    if (_saveDebounce?.isActive ?? false) {
+      _saveDebounce!.cancel();
+    }
 
     _saveDebounce = Timer(const Duration(milliseconds: 150), () async {
       try {
@@ -65,6 +67,8 @@ class _KeepInternalStorage extends KeepStorage {
           stackTrace: stackTrace,
           error: error,
         );
+
+        /// Call onError callback if provided
         _keep.onError?.call(exception);
       }
     });
@@ -77,7 +81,7 @@ class _KeepInternalStorage extends KeepStorage {
 
   @override
   Future<void> write(KeepKey<dynamic> key, dynamic value) async {
-    int flags = 0;
+    var flags = 0;
     if (key.removable) {
       flags |= _flagRemovable;
     }
@@ -126,6 +130,7 @@ class _KeepInternalStorage extends KeepStorage {
   @override
   F getEntry<F>(KeepKey<dynamic> key) {
     final entry = memory[key.name];
+
     if (entry == null) {
       throw KeepException<dynamic>(
         'Key "${key.name}" not found in internal storage',
@@ -135,9 +140,9 @@ class _KeepInternalStorage extends KeepStorage {
   }
 
   @override
-  FutureOr<List<E>> getEntries<E>() {
+  List<E> getEntries<E>() {
     // Return values or keys?
     // Protocol says "raw entries". Usually for inspection.
-    return memory.values.map((e) => e.value).toList().cast<E>();
+    return memory.values.toList().cast<E>();
   }
 }
