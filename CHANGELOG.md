@@ -1,3 +1,8 @@
+## [0.0.4]
+
+### Added
+- **Implicit External Storage:** Providing a custom `storage` adapter now automatically enables `useExternalStorage`, simplifying key definitions.
+
 ## [0.0.3]
 
 ### Added

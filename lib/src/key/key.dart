@@ -25,11 +25,15 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   KeepKey({
     required this.name,
     this.removable = false,
-    this.useExternalStorage = false,
+    bool? useExternalStorage,
     this.storage,
-  });
+  }) : useExternalStorage = useExternalStorage ?? (storage != null);
 
-  /// The custom storage adapter for this key. Fallbacks to [keep.externalStorage].
+  /// Whether this key should use external (file-based or custom) storage.
+  /// Defaults to true if a custom [storage] is provided.
+  final bool useExternalStorage;
+
+  /// The custom storage adapter for this key. Fallbacks to [Keep.externalStorage].
   final KeepStorage? storage;
 
   /// The active external storage for this key.
@@ -59,12 +63,6 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   /// Removable keys are typically used for temporary data (like caches) that
   /// can be cleared without affecting the application's core state.
   final bool removable;
-
-  /// Whether this key's value is stored in its own dedicated file.
-  ///
-  /// Use `external` storage for large blobs of data (like images or large JSON)
-  /// to keep the main registry file small and fast.
-  final bool useExternalStorage;
 
   /// Creates a sub-key by appending [subKeyName] to the current [name].
   KeepKey<T> call(Object? subKeyName);

@@ -15,7 +15,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   KeepKeyPlain({
     required super.name,
     super.removable = false,
-    super.useExternalStorage = false,
+    super.useExternalStorage,
     super.storage,
   });
 

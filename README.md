@@ -144,6 +144,15 @@ class MyAesEncrypter extends KeepEncrypter {
   @override
   Future<String> decrypt(String data) => Isolate.run(() => decryptSync(data));
 }
+
+// Injection into your Keep subclass
+class SecureAppStorage extends Keep {
+  SecureAppStorage() : super(
+    encrypter: MyAesEncrypter(),
+  );
+
+  final pin = Keep.integerSecure('user_pin');
+}
 ```
 
 ### Custom Storage Adapter
@@ -218,13 +227,12 @@ class AppStorage extends Keep {
 
 ### Per-Key Custom Storage
 
-You can specify a custom storage adapter for individual keys. This overrides the global `externalStorage` for that specific key. This is perfect for keys that need a different location, encryption, or backend while keeping the rest of the app on the default storage.
+You can specify a custom storage adapter for individual keys. This overrides the global `externalStorage` for that specific key. **Note:** Providing a custom adapter automatically enables external storage for that key and routes all operations directly to your adapter.
 
 ```dart
 final specialData = Keep.string(
   'special_key',
-  useExternalStorage: true,
-  storage: MyCloudStorage(), // This key alone will use MyCloudStorage
+  storage: MyCloudStorage(), // Uses this storage directly and enables external storage implicitly
 );
 ```
 
