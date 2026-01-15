@@ -4,12 +4,12 @@
 
 ## Features
 
-- 🔒 **Secure by Default:** Built-in encryption support for sensitive data via `KeepKeySecure`.
-- 🧱 **Type-Safe:** Define keys with specific types (`int`, `bool`, `List<String>`, `CustomObject`) to prevent runtime errors.
+- 🔒 **Secure by Default:** Built-in encryption support and **Byte Shifting** obfuscation for disk security.
+- 🧱 **Type-Safe:** Define keys with specific types (`int`, `bool`, `List<String>`, `CustomObject`).
 - ⚡ **Reactive:** Listen to changes on specific keys or the entire keep using Streams.
-- 🚀 **Performant:** Uses Isolates for heavy encryption and file I/O to keep the UI smooth.
-- 💾 **Hybrid Storage:** Keep small settings in a consolidated file (fast load) and large data in separate files (lazy load).
-- 🛠 **Custom Models:** Built-in support for storing custom Dart objects via `toJson`/`fromJson`.
+- 🚀 **Performant & Isolated:** UI stays smooth with background I/O and isolate-based processing.
+- 💾 **Hybrid Storage:** Fast load for small values, lazy load for large files.
+- � **Discovery:** Automatically discovers and maps encrypted keys even for uninitialized (`late`) fields.
 
 ## Installation
 
@@ -146,6 +146,20 @@ final profile = keep.custom<UserProfile>(
 );
 ```
 
+### Sub-keys
+
+You can create dynamic sub-keys by calling a key instance. This is useful for lists, category-based data, or dynamic paths.
+
+```dart
+final notes = keep.string('notes');
+
+// Creates keys named "notes.work", "notes.personal", etc.
+await notes('work').write('Finish documentation');
+await notes('personal').write('Buy milk');
+
+final workNote = await notes('work').read();
+```
+
 ## Documentation
 
 All public APIs are documented with Dartdoc comments. Key classes:
@@ -194,8 +208,9 @@ class AesEncrypter extends KeepEncrypter {
 }
 ```
 
-- [ ] Data Integrity: Add **Checksum/CRC32** validation for binary files.
-- [ ] Atomicity: Implement **Shadow Backups** (.bak) for automatic recovery from file corruption.
-- [ ] Binary Protocol: Add **Magic Headers** to identify valid Keep files.
-- [ ] Migration tools for schema/version upgrades.
-- [ ] Batch write operations.
+## Roadmap & Planned Features
+
+- [ ] **Data Integrity:** Add Checksum/CRC32 validation for binary files.
+- [ ] **Atomicity:** Implement Shadow Backups (.bak) to recover from system crashes.
+- [ ] **Migration:** Tools for schema versioning and data migrations.
+- [ ] **Compression:** Optional GZip/Brotli support for large external files.
