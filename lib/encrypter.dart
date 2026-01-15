@@ -1,12 +1,12 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// Interface for encrypting and decrypting vault data.
+/// Interface for encrypting and decrypting keep data.
 ///
 /// Implement this class to provide custom encryption (e.g., AES-GCM via
 /// `flutter_secure_storage` or platform keychain).
-abstract class VaultEncrypter {
-  /// Default constructor for [VaultEncrypter].
-  const VaultEncrypter();
+abstract class KeepEncrypter {
+  /// Default constructor for [KeepEncrypter].
+  const KeepEncrypter();
 
   /// Initializes the encrypter.
   Future<void> init();
@@ -16,7 +16,7 @@ abstract class VaultEncrypter {
 
   /// Synchronously encrypts the given [data].
   ///
-  /// Used by [VaultKey.readSync] and [VaultKey.writeSync] (if applicable).
+  /// Used by [KeepKey.readSync] and [KeepKey.writeSync] (if applicable).
   /// If your encryption is purely async, throw [UnimplementedError].
   String encryptSync(String data);
 
@@ -25,7 +25,7 @@ abstract class VaultEncrypter {
 
   /// Synchronously decrypts the given [data].
   ///
-  /// Used by [VaultKey.readSync].
+  /// Used by [KeepKey.readSync].
   /// If your encryption is purely async, throw [UnimplementedError].
   String decryptSync(String data);
 }

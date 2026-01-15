@@ -1,28 +1,28 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vault/vault.dart';
+import 'package:keep/keep.dart';
 
-class TestVault extends Vault {
-  TestVault()
+class TestKeep extends Keep {
+  TestKeep()
     : super(
-        encrypter: SimpleVaultEncrypter(
+        encrypter: SimpleKeepEncrypter(
           secureKey: 'secure_test_key_32_chars_long!!',
         ),
       );
 
-  VaultKey<String> get username => key.string('username');
-  VaultKey<String> get username2 => key.string('username');
-  VaultKey<String> get username3 => key.string('username');
-  VaultKeySecure<String> get secureToken => key.stringSecure(
+  KeepKey<String> get username => key.string('username');
+  KeepKey<String> get username2 => key.string('username');
+  KeepKey<String> get username3 => key.string('username');
+  KeepKeySecure<String> get secureToken => key.stringSecure(
     'token',
   ); // Internal Secure
 
-  VaultKey<String> get extData => key.string(
+  KeepKey<String> get extData => key.string(
     'ext_data',
     useExternalStorage: true,
   ); // External
 
-  VaultKeySecure<String> get extSecure => key.stringSecure(
+  KeepKeySecure<String> get extSecure => key.stringSecure(
     'ext_secure',
     useExternalStorage: true,
   ); // External Secure
@@ -30,7 +30,7 @@ class TestVault extends Vault {
 
 void main() {
   test('Generate Data for Inspection', () async {
-    final dir = Directory('${Directory.current.path}/test/vault_data_inspect');
+    final dir = Directory('${Directory.current.path}/test/keep_data_inspect');
 
     // Clean start
     // if (dir.existsSync()) {
@@ -40,7 +40,7 @@ void main() {
 
     print('Storage Path: ${dir.path}');
 
-    final storage = TestVault();
+    final storage = TestKeep();
     await storage.init(path: dir.path);
 
     // 1. Internal Plain

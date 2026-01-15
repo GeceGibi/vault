@@ -1,14 +1,14 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// A specialized [VaultKey] that automatically encrypts and decrypts data
-/// using the vault's [VaultEncrypter].
+/// A specialized [KeepKey] that automatically encrypts and decrypts data
+/// using the keep's [KeepEncrypter].
 ///
 /// The key name is hashed with DJB2 for path obfuscation.
-class VaultKeySecure<T> extends VaultKey<T> {
-  /// Creates a [VaultKeySecure].
-  VaultKeySecure({
+class KeepKeySecure<T> extends KeepKey<T> {
+  /// Creates a [KeepKeySecure].
+  KeepKeySecure({
     required super.name,
-    required super.vault,
+    required super.keep,
     required this.fromStorage,
     required this.toStorage,
     super.removable,
@@ -45,15 +45,15 @@ class VaultKeySecure<T> extends VaultKey<T> {
   T? readSync() {
     try {
       final encryptedData = switch (useExternalStorage) {
-        true => vault.external.readSync<String>(this),
-        false => vault.internal.readSync<String>(this),
+        true => keep.external.readSync<String>(this),
+        false => keep.internal.readSync<String>(this),
       };
 
       if (encryptedData == null) {
         return null;
       }
 
-      final decrypted = vault.encrypter.decryptSync(encryptedData);
+      final decrypted = keep.encrypter.decryptSync(encryptedData);
       return fromStorage(jsonDecode(decrypted));
     } catch (error, stackTrace) {
       final exception = toException(
@@ -62,7 +62,7 @@ class VaultKeySecure<T> extends VaultKey<T> {
         stackTrace: stackTrace,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
       unawaited(remove());
       return null;
     }
@@ -71,19 +71,19 @@ class VaultKeySecure<T> extends VaultKey<T> {
   /// Reads, decrypts, and deserializes the value from storage.
   @override
   Future<T?> read() async {
-    await vault._ensureInitialized;
+    await keep._ensureInitialized;
 
     try {
       final encryptedData = switch (useExternalStorage) {
-        true => await vault.external.read<String>(this),
-        false => await vault.internal.read<String>(this),
+        true => await keep.external.read<String>(this),
+        false => await keep.internal.read<String>(this),
       };
 
       if (encryptedData == null) {
         return null;
       }
 
-      final decrypted = await vault.encrypter.decrypt(encryptedData);
+      final decrypted = await keep.encrypter.decrypt(encryptedData);
       return fromStorage(await compute(jsonDecode, decrypted));
     } catch (error, stackTrace) {
       final exception = toException(
@@ -92,7 +92,7 @@ class VaultKeySecure<T> extends VaultKey<T> {
         stackTrace: stackTrace,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       unawaited(remove());
       return null;
@@ -102,7 +102,7 @@ class VaultKeySecure<T> extends VaultKey<T> {
   /// Serializes, encrypts, and writes the value to storage.
   @override
   Future<void> write(T? value) async {
-    await vault._ensureInitialized;
+    await keep._ensureInitialized;
 
     if (value == null) {
       await remove();
@@ -110,16 +110,16 @@ class VaultKeySecure<T> extends VaultKey<T> {
     }
     final storageValue = toStorage(value);
 
-    final encrypted = await vault.encrypter.encrypt(
+    final encrypted = await keep.encrypter.encrypt(
       await compute(jsonEncode, storageValue),
     );
 
-    vault._controller.add(this);
+    keep._controller.add(this);
 
     if (useExternalStorage) {
-      await vault.external.write(this, encrypted);
+      await keep.external.write(this, encrypted);
     } else {
-      vault.internal.write(this, encrypted);
+      keep.internal.write(this, encrypted);
     }
   }
 }

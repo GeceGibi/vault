@@ -1,13 +1,13 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// Default XOR-based implementation of [VaultEncrypter].
+/// Default XOR-based implementation of [KeepEncrypter].
 ///
 /// This provides basic obfuscation (not strong encryption).
-/// For sensitive data, implement [VaultEncrypter] with AES-GCM or use
+/// For sensitive data, implement [KeepEncrypter] with AES-GCM or use
 /// platform-native secure storage.
-class SimpleVaultEncrypter extends VaultEncrypter {
-  /// Creates a [SimpleVaultEncrypter] with a [secureKey].
-  SimpleVaultEncrypter({required this.secureKey});
+class SimpleKeepEncrypter extends KeepEncrypter {
+  /// Creates a [SimpleKeepEncrypter] with a [secureKey].
+  SimpleKeepEncrypter({required this.secureKey});
 
   /// The key used for XOR obfuscation.
   final String secureKey;

@@ -1,23 +1,23 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
 /// In-memory storage that syncs to a binary file.
-/// Uses [VaultCodec] for binary serialization/deserialization.
-class _VaultInternalStorage extends VaultStorage {
+/// Uses [KeepCodec] for binary serialization/deserialization.
+class _KeepInternalStorage extends KeepStorage {
   late File _rootFile;
-  late final Vault _vault;
+  late final Keep _keep;
 
   /// In-memory cache of entries.
-  Map<String, VaultEntry> memory = {};
+  Map<String, KeepEntry> memory = {};
 
   Timer? _saveDebounce;
 
   static const int _flagRemovable = 1;
 
   @override
-  Future<void> init(Vault vault) async {
+  Future<void> init(Keep keep) async {
     try {
-      _vault = vault;
-      _rootFile = File('${vault.root.path}/main.vault');
+      _keep = keep;
+      _rootFile = File('${keep.root.path}/main.keep');
 
       if (!_rootFile.existsSync()) {
         await _rootFile.create(recursive: true);
@@ -34,15 +34,15 @@ class _VaultInternalStorage extends VaultStorage {
       }
 
       // Isolate logic for decoding
-      memory = await compute(VaultCodec.decodeAll, bytes);
+      memory = await compute(KeepCodec.decodeAll, bytes);
     } catch (error, stackTrace) {
-      final exception = VaultException<dynamic>(
+      final exception = KeepException<dynamic>(
         'Failed to initialize internal storage',
         stackTrace: stackTrace,
         error: error,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
       memory = {};
     }
   }
@@ -53,41 +53,41 @@ class _VaultInternalStorage extends VaultStorage {
 
     _saveDebounce = Timer(const Duration(milliseconds: 150), () async {
       try {
-        final currentMemory = Map<String, VaultEntry>.from(memory);
-        final bytes = await compute(VaultCodec.encodeAll, currentMemory);
+        final currentMemory = Map<String, KeepEntry>.from(memory);
+        final bytes = await compute(KeepCodec.encodeAll, currentMemory);
 
         final tmp = File('${_rootFile.path}.tmp');
         await tmp.writeAsBytes(bytes, flush: true);
         await tmp.rename(_rootFile.path);
       } catch (error, stackTrace) {
-        final exception = VaultException<dynamic>(
+        final exception = KeepException<dynamic>(
           'Failed to save internal storage',
           stackTrace: stackTrace,
           error: error,
         );
-        _vault.onError?.call(exception);
+        _keep.onError?.call(exception);
       }
     });
   }
 
   @override
-  Future<V?> read<V>(VaultKey<dynamic> key) async {
+  Future<V?> read<V>(KeepKey<dynamic> key) async {
     return readSync<V>(key);
   }
 
   @override
-  Future<void> write(VaultKey<dynamic> key, dynamic value) async {
+  Future<void> write(KeepKey<dynamic> key, dynamic value) async {
     int flags = 0;
     if (key.removable) {
       flags |= _flagRemovable;
     }
 
-    memory[key.name] = VaultEntry(value, flags);
+    memory[key.name] = KeepEntry(value, flags);
     unawaited(saveMemory());
   }
 
   @override
-  Future<void> remove(VaultKey<dynamic> key) async {
+  Future<void> remove(KeepKey<dynamic> key) async {
     memory.remove(key.name);
     unawaited(saveMemory());
   }
@@ -111,23 +111,23 @@ class _VaultInternalStorage extends VaultStorage {
   }
 
   @override
-  V? readSync<V>(VaultKey<dynamic> key) {
+  V? readSync<V>(KeepKey<dynamic> key) {
     final entry = memory[key.name];
     if (entry == null) return null;
     return entry.value as V?;
   }
 
   @override
-  FutureOr<bool> exists(VaultKey<dynamic> key) => memory.containsKey(key.name);
+  FutureOr<bool> exists(KeepKey<dynamic> key) => memory.containsKey(key.name);
 
   @override
-  bool existsSync(VaultKey<dynamic> key) => memory.containsKey(key.name);
+  bool existsSync(KeepKey<dynamic> key) => memory.containsKey(key.name);
 
   @override
-  F getEntry<F>(VaultKey<dynamic> key) {
+  F getEntry<F>(KeepKey<dynamic> key) {
     final entry = memory[key.name];
     if (entry == null) {
-      throw VaultException<dynamic>(
+      throw KeepException<dynamic>(
         'Key "${key.name}" not found in internal storage',
       );
     }

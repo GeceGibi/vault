@@ -1,10 +1,10 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
 /// Default implementation using the standard [Directory] and [File] system.
-/// Uses [VaultCodec] for binary payload serialization.
-class DefaultVaultExternalStorage extends VaultStorage {
+/// Uses [KeepCodec] for binary payload serialization.
+class DefaultKeepExternalStorage extends KeepStorage {
   late Directory _root;
-  late Vault _vault;
+  late Keep _keep;
 
   final Map<String, Future<void>> _queue = {};
 
@@ -28,33 +28,33 @@ class DefaultVaultExternalStorage extends VaultStorage {
   }
 
   @override
-  Future<void> init(Vault vault) async {
+  Future<void> init(Keep keep) async {
     try {
-      _root = Directory('${vault.root.path}/external');
-      _vault = vault;
+      _root = Directory('${keep.root.path}/external');
+      _keep = keep;
 
       if (!_root.existsSync()) {
         await _root.create(recursive: true);
       }
     } catch (error, stackTrace) {
-      final exception = VaultException<dynamic>(
+      final exception = KeepException<dynamic>(
         'Failed to initialize external storage',
         stackTrace: stackTrace,
         error: error,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
       throw exception;
     }
   }
 
   @override
-  F getEntry<F>(VaultKey<dynamic> key) {
+  F getEntry<F>(KeepKey<dynamic> key) {
     return File('${_root.path}/${key.name}') as F;
   }
 
   @override
-  Future<V?> read<V>(VaultKey<dynamic> key) async {
+  Future<V?> read<V>(KeepKey<dynamic> key) async {
     try {
       return _withQueue(key.name, () async {
         final file = getEntry<File>(key);
@@ -66,11 +66,11 @@ class DefaultVaultExternalStorage extends VaultStorage {
         final bytes = await file.readAsBytes();
         if (bytes.isEmpty) return null;
 
-        final entry = VaultCodec.decodePayload(bytes);
+        final entry = KeepCodec.decodePayload(bytes);
         return entry?.value as V?;
       });
-    } on VaultException<dynamic> catch (e) {
-      _vault.onError?.call(e);
+    } on KeepException<dynamic> catch (e) {
+      _keep.onError?.call(e);
       rethrow;
     } catch (error, stackTrace) {
       final exception = key.toException(
@@ -79,38 +79,38 @@ class DefaultVaultExternalStorage extends VaultStorage {
         stackTrace: stackTrace,
       );
 
-      _vault.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
 
   @override
-  V? readSync<V>(VaultKey<dynamic> key) {
+  V? readSync<V>(KeepKey<dynamic> key) {
     final file = getEntry<File>(key);
     if (!file.existsSync()) return null;
 
     final bytes = file.readAsBytesSync();
     if (bytes.isEmpty) return null;
 
-    final entry = VaultCodec.decodePayload(bytes);
+    final entry = KeepCodec.decodePayload(bytes);
     return entry?.value as V?;
   }
 
   @override
-  Future<void> write(VaultKey<dynamic> key, Object? value) async {
+  Future<void> write(KeepKey<dynamic> key, Object? value) async {
     try {
       await _withQueue(key.name, () async {
         final file = getEntry<File>(key);
         final tmp = File('${file.path}.tmp');
 
         final flags = key.removable ? _flagRemovable : 0;
-        final bytes = VaultCodec.encodePayload(value, flags);
+        final bytes = KeepCodec.encodePayload(value, flags);
 
         await tmp.writeAsBytes(bytes, flush: true);
         await tmp.rename(file.path);
       });
-    } on VaultException<dynamic> catch (e) {
-      _vault.onError?.call(e);
+    } on KeepException<dynamic> catch (e) {
+      _keep.onError?.call(e);
       rethrow;
     } catch (error, stackTrace) {
       final exception = key.toException(
@@ -119,20 +119,20 @@ class DefaultVaultExternalStorage extends VaultStorage {
         stackTrace: stackTrace,
       );
 
-      _vault.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
 
   @override
-  bool existsSync(VaultKey<dynamic> key) => getEntry<File>(key).existsSync();
+  bool existsSync(KeepKey<dynamic> key) => getEntry<File>(key).existsSync();
 
   @override
-  Future<bool> exists(VaultKey<dynamic> key) async {
+  Future<bool> exists(KeepKey<dynamic> key) async {
     try {
       return getEntry<File>(key).existsSync();
-    } on VaultException<dynamic> catch (e) {
-      _vault.onError?.call(e);
+    } on KeepException<dynamic> catch (e) {
+      _keep.onError?.call(e);
       rethrow;
     } catch (error, stackTrace) {
       final exception = key.toException(
@@ -141,7 +141,7 @@ class DefaultVaultExternalStorage extends VaultStorage {
         stackTrace: stackTrace,
       );
 
-      _vault.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
@@ -169,12 +169,12 @@ class DefaultVaultExternalStorage extends VaultStorage {
           await file.delete();
         }
       } catch (error, stackTrace) {
-        final exception = VaultException<dynamic>(
+        final exception = KeepException<dynamic>(
           'Failed to clear removable file $file',
           stackTrace: stackTrace,
           error: error,
         );
-        _vault.onError?.call(exception);
+        _keep.onError?.call(exception);
       }
     }
   }
@@ -185,20 +185,20 @@ class DefaultVaultExternalStorage extends VaultStorage {
       try {
         await file.delete();
       } catch (error, stackTrace) {
-        final exception = VaultException<dynamic>(
+        final exception = KeepException<dynamic>(
           'Failed to delete $file',
           stackTrace: stackTrace,
           error: error,
         );
 
-        _vault.onError?.call(exception);
+        _keep.onError?.call(exception);
         throw exception;
       }
     }
   }
 
   @override
-  Future<void> remove(VaultKey<dynamic> key) async {
+  Future<void> remove(KeepKey<dynamic> key) async {
     try {
       final file = getEntry<File>(key);
 
@@ -207,8 +207,8 @@ class DefaultVaultExternalStorage extends VaultStorage {
       }
 
       await file.delete();
-    } on VaultException<dynamic> catch (e) {
-      _vault.onError?.call(e);
+    } on KeepException<dynamic> catch (e) {
+      _keep.onError?.call(e);
       rethrow;
     } catch (error, stackTrace) {
       final exception = key.toException(
@@ -217,7 +217,7 @@ class DefaultVaultExternalStorage extends VaultStorage {
         stackTrace: stackTrace,
       );
 
-      _vault.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
@@ -228,13 +228,13 @@ class DefaultVaultExternalStorage extends VaultStorage {
       if (!_root.existsSync()) return [];
       return (await _root.list().toList()).cast<E>();
     } catch (error, stackTrace) {
-      final exception = VaultException<dynamic>(
+      final exception = KeepException<dynamic>(
         'Failed to get entries',
         stackTrace: stackTrace,
         error: error,
       );
 
-      _vault.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }

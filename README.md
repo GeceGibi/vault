@@ -1,37 +1,37 @@
-# Vault
+# Keep
 
-**Vault** is a modern, type-safe, and reactive local storage solution for Flutter apps. It is designed to replace `SharedPreferences` with a more robust architecture that supports encryption, custom data models, and isolated file storage for large datasets.
+**Keep** is a modern, type-safe, and reactive local storage solution for Flutter apps. It is designed to replace `SharedPreferences` with a more robust architecture that supports encryption, custom data models, and isolated file storage for large datasets.
 
 ## Features
 
-- 🔒 **Secure by Default:** Built-in encryption support for sensitive data via `VaultKeySecure`.
+- 🔒 **Secure by Default:** Built-in encryption support for sensitive data via `KeepKeySecure`.
 - 🧱 **Type-Safe:** Define keys with specific types (`int`, `bool`, `List<String>`, `CustomObject`) to prevent runtime errors.
-- ⚡ **Reactive:** Listen to changes on specific keys or the entire vault using Streams.
+- ⚡ **Reactive:** Listen to changes on specific keys or the entire keep using Streams.
 - 🚀 **Performant:** Uses Isolates for heavy encryption and file I/O to keep the UI smooth.
 - 💾 **Hybrid Storage:** Keep small settings in a consolidated file (fast load) and large data in separate files (lazy load).
 - 🛠 **Custom Models:** Built-in support for storing custom Dart objects via `toJson`/`fromJson`.
 
 ## Installation
 
-Add `vault` to your `pubspec.yaml`:
+Add `keep` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  vault: ^0.0.1
+  keep: ^0.0.1
 ```
 
 ## Usage
 
-### 1. Extend Vault
+### 1. Extend Keep
 
-Create a storage class by extending `Vault` and define your keys as fields.
+Create a storage class by extending `Keep` and define your keys as fields.
 
 ```dart
-import 'package:vault/vault.dart';
+import 'package:keep/keep.dart';
 
-class AppStorage extends Vault {
+class AppStorage extends Keep {
   AppStorage() : super(
-    encrypter: SimpleVaultEncrypter(secureKey: 'your-32-char-key!!'),
+    encrypter: SimpleKeepEncrypter(secureKey: 'your-32-char-key!!'),
   );
 
   // Standard keys
@@ -63,7 +63,7 @@ void main() async {
 Or specify a custom path:
 
 ```dart
-await storage.init(path: '/custom/path', folderName: 'my_vault');
+await storage.init(path: '/custom/path', folderName: 'my_keep');
 ```
 
 ### 3. Read & Write
@@ -85,11 +85,11 @@ await counter.remove();
 
 ### 4. Reactive UI
 
-Vault provides a simple way to rebuild your UI when data changes.
+Keep provides a simple way to rebuild your UI when data changes.
 
 ```dart
-VaultBuilder<int>(
-  vaultKey: storage.counter,
+KeepBuilder<int>(
+  keepKey: storage.counter,
   builder: (context, value) {
     return Text('Count: ${value ?? 0}');
   },
@@ -109,10 +109,10 @@ storage.counter.stream.listen((key) async {
 
 ### File System Isolation for Large Data
 
-By default, Vault stores keys in a single JSON file for fast startup. For large data (like long lists or cached API responses), use `useExternalStorage: true`. This stores the data in a separate file, keeping the main index light.
+By default, Keep stores keys in a single JSON file for fast startup. For large data (like long lists or cached API responses), use `useExternalStorage: true`. This stores the data in a separate file, keeping the main index light.
 
 ```dart
-final largeData = vault.key.integer(
+final largeData = keep.key.integer(
   'api_cache',
   useExternalStorage: true,
 );
@@ -123,7 +123,7 @@ final largeData = vault.key.integer(
 Use `integerSecure` (or custom secure keys) to automatically encrypt data before writing to disk.
 
 ```dart
-final apiKey = vault.key.integerSecure('api_key');
+final apiKey = keep.key.integerSecure('api_key');
 ```
 
 ### Custom Objects
@@ -139,7 +139,7 @@ class UserProfile {
   static UserProfile fromJson(dynamic json) => UserProfile(json['name']);
 }
 
-final profile = vault.key.custom<UserProfile>(
+final profile = keep.key.custom<UserProfile>(
   name: 'user_profile',
   fromStorage: UserProfile.fromJson,
   toStorage: (u) => u.toJson(),
@@ -150,21 +150,21 @@ final profile = vault.key.custom<UserProfile>(
 
 All public APIs are documented with Dartdoc comments. Key classes:
 
-- **`Vault`** – Main storage controller.
-- **`VaultKey<T>`** – Typed key for read/write operations.
-- **`VaultKeySecure<T>`** – Encrypted variant of `VaultKey`.
-- **`VaultKeyManager`** – Factory for creating keys.
-- **`VaultStorage`** – Abstract base for custom storage backends.
-- **`VaultEncrypter`** – Interface for encryption implementations.
-- **`VaultBuilder`** – Reactive widget for UI updates.
+- **`Keep`** – Main storage controller.
+- **`KeepKey<T>`** – Typed key for read/write operations.
+- **`KeepKeySecure<T>`** – Encrypted variant of `KeepKey`.
+- **`KeepKeyManager`** – Factory for creating keys.
+- **`KeepStorage`** – Abstract base for custom storage backends.
+- **`KeepEncrypter`** – Interface for encryption implementations.
+- **`KeepBuilder`** – Reactive widget for UI updates.
 
 ## Custom Encryption
 
-You can implement `VaultEncrypter` to provide your own encryption logic (e.g., AES).
+You can implement `KeepEncrypter` to provide your own encryption logic (e.g., AES).
 For heavy operations, use `Isolate.run` in async methods to keep the UI smooth.
 
 ```dart
-class AesEncrypter extends VaultEncrypter {
+class AesEncrypter extends KeepEncrypter {
   @override
   Future<void> init() async {
     // Initialize keys...
@@ -196,7 +196,7 @@ class AesEncrypter extends VaultEncrypter {
 
 ## Planned Features
 
-- [ ] Custom serialization support for `VaultKey` (`fromStorage`/`toStorage`)
+- [ ] Custom serialization support for `KeepKey` (`fromStorage`/`toStorage`)
 - [ ] AES-GCM encryption option
 - [ ] Migration tools for version upgrades
 - [ ] Batch operations

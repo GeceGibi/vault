@@ -1,17 +1,17 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// Represents a value stored in the vault along with its associated metadata flags.
+/// Represents a value stored in the keep along with its associated metadata flags.
 ///
 /// This class serves as the fundamental data container for storing and retrieving
-/// information within the Vault system. It encapsulates both the raw data payload
+/// information within the Keep system. It encapsulates both the raw data payload
 /// and bitwise flags that define the data's behavior (e.g., persistence strategies).
 ///
-/// Instances of [VaultEntry] are immutable and are used during:
-/// - In-memory storage (Internal Vault)
-/// - Binary serialization (External Vault)
-class VaultEntry {
-  /// Creates a new vault entry with the given [value] and [flags].
-  const VaultEntry(this.value, this.flags);
+/// Instances of [KeepEntry] are immutable and are used during:
+/// - In-memory storage (Internal Keep)
+/// - Binary serialization (External Keep)
+class KeepEntry {
+  /// Creates a new keep entry with the given [value] and [flags].
+  const KeepEntry(this.value, this.flags);
 
   /// The stored value payload.
   ///
@@ -31,15 +31,15 @@ class VaultEntry {
   /// Checks if the entry is marked as **Removable**.
   ///
   /// Returns `true` if the first bit (Bit 0) of [flags] is set.
-  bool get isRemovable => (flags & VaultCodec._flagRemovable) != 0;
+  bool get isRemovable => (flags & KeepCodec._flagRemovable) != 0;
 
   @override
-  String toString() => 'VaultEntry(value: $value, flags: $flags)';
+  String toString() => 'KeepEntry(value: $value, flags: $flags)';
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is VaultEntry && other.value == value && other.flags == flags;
+    return other is KeepEntry && other.value == value && other.flags == flags;
   }
 
   @override

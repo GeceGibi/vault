@@ -1,41 +1,41 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// Factory for creating typed [VaultKey] and [VaultKeySecure] instances.
+/// Factory for creating typed [KeepKey] and [KeepKeySecure] instances.
 ///
-/// Access via [Vault.key] to create storage keys with built-in serialization.
-class VaultKeyManager {
-  /// Creates a [VaultKeyManager] linked to a [vault].
-  VaultKeyManager({required Vault vault}) : _vault = vault;
-  final Vault _vault;
+/// Access via [Keep.key] to create storage keys with built-in serialization.
+class KeepKeyManager {
+  /// Creates a [KeepKeyManager] linked to a [keep].
+  KeepKeyManager({required Keep keep}) : _keep = keep;
+  final Keep _keep;
 
   /// Creates a standard [int] key.
-  VaultKey<int> integer(
+  KeepKey<int> integer(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
+    return _keep._registerKey(
       name,
-      () => VaultKey<int>(
+      () => KeepKey<int>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
       ),
     );
   }
 
-  /// Creates an encrypted [int] key using [VaultKeySecure].
-  VaultKeySecure<int> integerSecure(
+  /// Creates an encrypted [int] key using [KeepKeySecure].
+  KeepKeySecure<int> integerSecure(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
-      VaultKeySecure.generateHash(name),
-      () => VaultKeySecure<int>(
+    return _keep._registerKey(
+      KeepKeySecure.generateHash(name),
+      () => KeepKeySecure<int>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
         toStorage: (value) => value,
@@ -51,33 +51,33 @@ class VaultKeyManager {
   }
 
   /// Creates a standard [String] key.
-  VaultKey<String> string(
+  KeepKey<String> string(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
+    return _keep._registerKey(
       name,
-      () => VaultKey<String>(
+      () => KeepKey<String>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
       ),
     );
   }
 
-  /// Creates an encrypted [String] key using [VaultKeySecure].
-  VaultKeySecure<String> stringSecure(
+  /// Creates an encrypted [String] key using [KeepKeySecure].
+  KeepKeySecure<String> stringSecure(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
-      VaultKeySecure.generateHash(name),
-      () => VaultKeySecure<String>(
+    return _keep._registerKey(
+      KeepKeySecure.generateHash(name),
+      () => KeepKeySecure<String>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
         toStorage: (value) => value,
@@ -87,33 +87,33 @@ class VaultKeyManager {
   }
 
   /// Creates a standard [bool] key.
-  VaultKey<bool> boolean(
+  KeepKey<bool> boolean(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
+    return _keep._registerKey(
       name,
-      () => VaultKey<bool>(
+      () => KeepKey<bool>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
       ),
     );
   }
 
-  /// Creates an encrypted [bool] key using [VaultKeySecure].
-  VaultKeySecure<bool> booleanSecure(
+  /// Creates an encrypted [bool] key using [KeepKeySecure].
+  KeepKeySecure<bool> booleanSecure(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
-      VaultKeySecure.generateHash(name),
-      () => VaultKeySecure<bool>(
+    return _keep._registerKey(
+      KeepKeySecure.generateHash(name),
+      () => KeepKeySecure<bool>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
         toStorage: (value) => value,
@@ -129,33 +129,33 @@ class VaultKeyManager {
   }
 
   /// Creates a standard [double] key.
-  VaultKey<double> decimal(
+  KeepKey<double> decimal(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
+    return _keep._registerKey(
       name,
-      () => VaultKey<double>(
+      () => KeepKey<double>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
       ),
     );
   }
 
-  /// Creates an encrypted [double] key using [VaultKeySecure].
-  VaultKeySecure<double> decimalSecure(
+  /// Creates an encrypted [double] key using [KeepKeySecure].
+  KeepKeySecure<double> decimalSecure(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
-      VaultKeySecure.generateHash(name),
-      () => VaultKeySecure<double>(
+    return _keep._registerKey(
+      KeepKeySecure.generateHash(name),
+      () => KeepKeySecure<double>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
         toStorage: (value) => value,
@@ -172,16 +172,16 @@ class VaultKeyManager {
   }
 
   /// Creates a [Map<String, dynamic>] key.
-  VaultKey<Map<String, dynamic>> map(
+  KeepKey<Map<String, dynamic>> map(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
+    return _keep._registerKey(
       name,
-      () => VaultKey<Map<String, dynamic>>(
+      () => KeepKey<Map<String, dynamic>>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
       ),
@@ -189,16 +189,16 @@ class VaultKeyManager {
   }
 
   /// Creates an encrypted [Map<String, dynamic>] key.
-  VaultKeySecure<Map<String, dynamic>> mapSecure(
+  KeepKeySecure<Map<String, dynamic>> mapSecure(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
-      VaultKeySecure.generateHash(name),
-      () => VaultKeySecure<Map<String, dynamic>>(
+    return _keep._registerKey(
+      KeepKeySecure.generateHash(name),
+      () => KeepKeySecure<Map<String, dynamic>>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
         toStorage: (value) => value,
@@ -213,16 +213,16 @@ class VaultKeyManager {
   }
 
   /// Creates a [List<T>] key.
-  VaultKey<List<T>> list<T>(
+  KeepKey<List<T>> list<T>(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
+    return _keep._registerKey(
       name,
-      () => VaultKey<List<T>>(
+      () => KeepKey<List<T>>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
       ),
@@ -230,16 +230,16 @@ class VaultKeyManager {
   }
 
   /// Creates an encrypted [List<T>] key.
-  VaultKeySecure<List<T>> listSecure<T>(
+  KeepKeySecure<List<T>> listSecure<T>(
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
-      VaultKeySecure.generateHash(name),
-      () => VaultKeySecure<List<T>>(
+    return _keep._registerKey(
+      KeepKeySecure.generateHash(name),
+      () => KeepKeySecure<List<T>>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
         toStorage: (value) => value,
@@ -254,18 +254,18 @@ class VaultKeyManager {
   }
 
   /// Creates a custom encrypted key with serialization.
-  VaultKeySecure<T> custom<T>({
+  KeepKeySecure<T> custom<T>({
     required String name,
     required T? Function(Object? value) fromStorage,
     required Object? Function(T value) toStorage,
     bool removable = false,
     bool useExternalStorage = false,
   }) {
-    return _vault._registerKey(
-      VaultKeySecure.generateHash(name),
-      () => VaultKeySecure<T>(
+    return _keep._registerKey(
+      KeepKeySecure.generateHash(name),
+      () => KeepKeySecure<T>(
         name: name,
-        vault: _vault,
+        keep: _keep,
         removable: removable,
         useExternalStorage: useExternalStorage,
         toStorage: toStorage,

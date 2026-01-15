@@ -22,47 +22,47 @@ part 'codec.dart';
 part 'entry.dart';
 part 'widgets.dart';
 
-/// Simple, Singleton-based Vault storage with Field-Level Encryption support.
-class Vault {
-  /// Creates a new [Vault] instance.
+/// Simple, Singleton-based Keep storage with Field-Level Encryption support.
+class Keep {
+  /// Creates a new [Keep] instance.
   ///
-  /// [encrypter] is used for secure keys. Defaults to [SimpleVaultEncrypter].
-  /// [externalStorage] is used for large data. Defaults to [DefaultVaultExternalStorage].
-  Vault({
+  /// [encrypter] is used for secure keys. Defaults to [SimpleKeepEncrypter].
+  /// [externalStorage] is used for large data. Defaults to [DefaultKeepExternalStorage].
+  Keep({
     this.onError,
-    VaultEncrypter? encrypter,
-    VaultStorage? externalStorage,
-  }) : external = externalStorage ?? DefaultVaultExternalStorage(),
-       encrypter = encrypter ?? SimpleVaultEncrypter(secureKey: '0' * 32);
+    KeepEncrypter? encrypter,
+    KeepStorage? externalStorage,
+  }) : external = externalStorage ?? DefaultKeepExternalStorage(),
+       encrypter = encrypter ?? SimpleKeepEncrypter(secureKey: '0' * 32);
 
-  /// The encrypter used for [VaultKeySecure].
+  /// The encrypter used for [KeepKeySecure].
   @protected
-  final VaultEncrypter encrypter;
+  final KeepEncrypter encrypter;
 
   /// External storage implementation for large datasets.
-  final VaultStorage external;
+  final KeepStorage external;
 
-  /// Callback invoked when a [VaultException] occurs.
-  void Function(VaultException<dynamic> exception)? onError;
+  /// Callback invoked when a [KeepException] occurs.
+  void Function(KeepException<dynamic> exception)? onError;
 
-  /// Root directory path of the vault on disk.
+  /// Root directory path of the keep on disk.
   late String _path;
 
-  /// Name of the folder that stores the vault files.
+  /// Name of the folder that stores the keep files.
   late String _folderName;
 
-  /// The root directory where vault files are stored.
+  /// The root directory where keep files are stored.
   @protected
   Directory get root => Directory('$_path/$_folderName');
 
-  final StreamController<VaultKey<dynamic>> _controller =
-      StreamController<VaultKey<dynamic>>.broadcast();
+  final StreamController<KeepKey<dynamic>> _controller =
+      StreamController<KeepKey<dynamic>>.broadcast();
 
   /// A stream of key changes.
-  Stream<VaultKey<dynamic>> get onChange => _controller.stream;
+  Stream<KeepKey<dynamic>> get onChange => _controller.stream;
 
-  /// Core storage for memory-based vault (main metadata and small values).
-  final internal = _VaultInternalStorage();
+  /// Core storage for memory-based keep (main metadata and small values).
+  final internal = _KeepInternalStorage();
 
   /// Completer for initialization.
   final Completer<void> _initCompleter = Completer<void>();
@@ -70,16 +70,16 @@ class Vault {
   /// Waits for [init] to complete. Safe to call multiple times.
   Future<void> get _ensureInitialized => _initCompleter.future;
 
-  /// Registry of all keys created for this vault.
-  final Map<String, VaultKey<dynamic>> _registry = {};
+  /// Registry of all keys created for this keep.
+  final Map<String, KeepKey<dynamic>> _registry = {};
 
   /// Returns all registered keys.
-  List<VaultKey<dynamic>> get keys => List.unmodifiable(_registry.values);
+  List<KeepKey<dynamic>> get keys => List.unmodifiable(_registry.values);
 
   /// Registers or retrieves a key from the registry.
   ///
-  /// This ensures that [VaultKey] instances are singletons per name.
-  T _registerKey<T extends VaultKey<dynamic>>(
+  /// This ensures that [KeepKey] instances are singletons per name.
+  T _registerKey<T extends KeepKey<dynamic>>(
     String name,
     T Function() creator,
   ) {
@@ -88,7 +88,7 @@ class Vault {
       if (existing is T) {
         return existing;
       }
-      throw VaultException<T>(
+      throw KeepException<T>(
         'Key "$name" already exists with type ${existing.runtimeType}, '
         'but requested $T.',
       );
@@ -100,21 +100,21 @@ class Vault {
   }
 
   /// Returns all removable `true` keys.
-  List<VaultKey<dynamic>> get removableKeys {
+  List<KeepKey<dynamic>> get removableKeys {
     return List.unmodifiable(_registry.values.where((k) => k.removable));
   }
 
-  /// Returns a [VaultKeyManager] to create typed storage keys.
+  /// Returns a [KeepKeyManager] to create typed storage keys.
   ///
   /// Use this inside subclasses to define key fields.
   @protected
-  VaultKeyManager get key => VaultKeyManager(vault: this);
+  KeepKeyManager get key => KeepKeyManager(keep: this);
 
-  /// Initializes the vault by creating directories and starting storage adapters.
+  /// Initializes the keep by creating directories and starting storage adapters.
   ///
   /// [path] specifies the base directory. Defaults to app support directory.
   /// [folderName] is the name of the folder created inside [path].
-  Future<void> init({String? path, String folderName = 'vault'}) async {
+  Future<void> init({String? path, String folderName = 'keep'}) async {
     _path = path ?? (await getApplicationSupportDirectory()).path;
     _folderName = folderName;
 
@@ -130,7 +130,7 @@ class Vault {
     _initCompleter.complete();
   }
 
-  /// Removes all keys marked as `removable: true` from the vault.
+  /// Removes all keys marked as `removable: true` from the keep.
   ///
   /// This operation performs a **storage-level cleanup** by scanning both internal memory
   /// and external files for entries with the **Removable Flag** set.

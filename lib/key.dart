@@ -1,22 +1,22 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// Represents a typed key within the [Vault].
-class VaultKey<T> extends Stream<VaultKey<T>> {
-  /// Creates a [VaultKey].
+/// Represents a typed key within the [Keep].
+class KeepKey<T> extends Stream<KeepKey<T>> {
+  /// Creates a [KeepKey].
   ///
   /// [name] Unique identifier for the key.
-  /// [vault] The vault instance this key belongs to.
+  /// [keep] The keep instance this key belongs to.
   /// [removable] If true, this key can be cleared during mass operations.
   /// [useExternalStorage] If true, values are stored in individual files.
-  VaultKey({
+  KeepKey({
     required this.name,
-    required this.vault,
+    required this.keep,
     this.removable = false,
     this.useExternalStorage = false,
   });
 
-  /// The vault instance this key belongs to.
-  final Vault vault;
+  /// The keep instance this key belongs to.
+  final Keep keep;
 
   /// The unique name/path of this key.
   final String name;
@@ -28,25 +28,25 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
   final bool useExternalStorage;
 
   /// Creates a sub-key by appending [subKeyName] to current [name].
-  VaultKey<T> call(Object? subKeyName) {
-    return VaultKey<T>(
+  KeepKey<T> call(Object? subKeyName) {
+    return KeepKey<T>(
       name: '$name.$subKeyName',
       removable: removable,
-      vault: vault,
+      keep: keep,
       useExternalStorage: useExternalStorage,
     );
   }
 
   /// Returns true if this key currently exists in storage.
   FutureOr<bool> get exists async {
-    await vault._ensureInitialized;
+    await keep._ensureInitialized;
 
     try {
       if (useExternalStorage) {
-        return vault.external.exists(this);
+        return keep.external.exists(this);
       }
 
-      return vault.internal.exists(this);
+      return keep.internal.exists(this);
     } catch (e, s) {
       final exception = toException(
         e.toString(),
@@ -54,7 +54,7 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
         stackTrace: s,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       throw exception;
     }
@@ -64,10 +64,10 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
   bool get existsSync {
     try {
       if (useExternalStorage) {
-        return vault.external.existsSync(this);
+        return keep.external.existsSync(this);
       }
 
-      return vault.internal.existsSync(this);
+      return keep.internal.existsSync(this);
     } catch (e, s) {
       final exception = toException(
         e.toString(),
@@ -75,7 +75,7 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
         stackTrace: s,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       throw exception;
     }
@@ -83,13 +83,13 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
 
   /// Removes this key from storage.
   Future<void> remove() async {
-    await vault._ensureInitialized;
+    await keep._ensureInitialized;
 
     try {
       if (useExternalStorage) {
-        await vault.external.remove(this);
+        await keep.external.remove(this);
       } else {
-        vault.internal.remove(this);
+        keep.internal.remove(this);
       }
     } catch (e, s) {
       final exception = toException(
@@ -98,7 +98,7 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
         stackTrace: s,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       throw exception;
     }
@@ -118,14 +118,14 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
 
   /// Synchronously reads the value from storage.
   ///
-  /// **WARNING:** This method assumes the vault is already initialized.
+  /// **WARNING:** This method assumes the keep is already initialized.
   /// Calling this before [init] completes may throw an error or cause unexpected behavior.
   /// For external storage, this performs a blocking I/O operation.
   T? readSync() {
     try {
       return switch (useExternalStorage) {
-        true => vault.external.readSync(this),
-        false => vault.internal.readSync(this),
+        true => keep.external.readSync(this),
+        false => keep.internal.readSync(this),
       };
     } catch (error, stackTrace) {
       final exception = toException(
@@ -134,7 +134,7 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
         stackTrace: stackTrace,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       unawaited(remove());
       return null;
@@ -143,12 +143,12 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
 
   /// Reads the value from storage.
   Future<T?> read() async {
-    await vault._ensureInitialized;
+    await keep._ensureInitialized;
 
     try {
       return switch (useExternalStorage) {
-        true => await vault.external.read(this),
-        false => vault.internal.read(this),
+        true => await keep.external.read(this),
+        false => keep.internal.read(this),
       };
     } catch (error, stackTrace) {
       final exception = toException(
@@ -157,7 +157,7 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
         stackTrace: stackTrace,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       unawaited(remove());
       return null;
@@ -168,8 +168,8 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
   ///
   /// If [value] is null, the key is removed.
   Future<void> write(T? value) async {
-    await vault._ensureInitialized;
-    vault._controller.add(this);
+    await keep._ensureInitialized;
+    keep._controller.add(this);
 
     if (value == null) {
       await remove();
@@ -178,9 +178,9 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
 
     try {
       if (useExternalStorage) {
-        await vault.external.write(this, value);
+        await keep.external.write(this, value);
       } else {
-        vault.internal.write(this, value);
+        keep.internal.write(this, value);
       }
     } catch (error, stackTrace) {
       final exception = toException(
@@ -189,7 +189,7 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
         stackTrace: stackTrace,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       throw exception;
     }
@@ -201,8 +201,8 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
       final currentValue = await read();
       final newValue = updateFn(currentValue);
       await write(newValue);
-    } on VaultException<T> catch (e) {
-      vault.onError?.call(e);
+    } on KeepException<T> catch (e) {
+      keep.onError?.call(e);
       rethrow;
     } catch (error, stackTrace) {
       final exception = toException(
@@ -211,19 +211,19 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
         stackTrace: stackTrace,
       );
 
-      vault.onError?.call(exception);
+      keep.onError?.call(exception);
 
       throw exception;
     }
   }
 
-  /// Creates a [VaultException] for this key with the given [message].
-  VaultException<T> toException(
+  /// Creates a [KeepException] for this key with the given [message].
+  KeepException<T> toException(
     String message, {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    return VaultException(
+    return KeepException(
       message,
       key: this,
       error: error,
@@ -232,15 +232,15 @@ class VaultKey<T> extends Stream<VaultKey<T>> {
   }
 
   @override
-  StreamSubscription<VaultKey<T>> listen(
-    void Function(VaultKey<T> event)? onData, {
+  StreamSubscription<KeepKey<T>> listen(
+    void Function(KeepKey<T> event)? onData, {
     Function? onError,
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    return vault.onChange
+    return keep.onChange
         .where((key) => key.name == name)
-        .cast<VaultKey<T>>()
+        .cast<KeepKey<T>>()
         .listen(
           onData,
           onError: onError,

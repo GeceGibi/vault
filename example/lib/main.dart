@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:vault/vault.dart';
+import 'package:keep/keep.dart';
 
-/// Extend Vault to define your storage schema.
+/// Extend Keep to define your storage schema.
 /// Keys are defined as class fields - autocomplete friendly!
-class AppStorage extends Vault {
+class AppStorage extends Keep {
   AppStorage()
       : super(
-          encrypter: SimpleVaultEncrypter(secureKey: 'my-32-char-key-here!!!!'),
+          encrypter: SimpleKeepEncrypter(secureKey: 'my-32-char-key-here!!!!'),
           onError: (e) => print('❌ Error: $e'),
         );
 
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Vault Test',
+      title: 'Keep Test',
       theme: ThemeData.dark(),
       home: const TestScreen(),
     );
@@ -58,7 +58,7 @@ class TestScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Vault Test')),
+      appBar: AppBar(title: const Text('Keep Test')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -127,7 +127,7 @@ Future<void> _testStandardKeys() async {
   print('rating: ${await storage.rating.read()}');
 
   // List
-  await storage.tags.write(['flutter', 'dart', 'vault']);
+  await storage.tags.write(['flutter', 'dart', 'keep']);
   print('tags: ${await storage.tags.read()}');
 
   // Map

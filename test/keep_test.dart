@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vault/vault.dart';
+import 'package:keep/keep.dart';
 
-class TestVault extends Vault {
-  TestVault()
+class TestKeep extends Keep {
+  TestKeep()
     : super(
-        encrypter: SimpleVaultEncrypter(
+        encrypter: SimpleKeepEncrypter(
           secureKey: 'secure_test_key_32_chars_long!!',
         ),
       );
@@ -27,12 +27,12 @@ class TestVault extends Vault {
 }
 
 void main() {
-  late TestVault storage;
+  late TestKeep storage;
   late Directory tempDir;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('vault_test');
-    storage = TestVault();
+    tempDir = await Directory.systemTemp.createTemp('keep_test');
+    storage = TestKeep();
     await storage.init(path: tempDir.path);
   });
 
@@ -42,7 +42,7 @@ void main() {
     }
   });
 
-  group('Vault Internal Storage', () {
+  group('Keep Internal Storage', () {
     test('Write and Read (Async)', () async {
       await storage.counter.write(42);
       expect(await storage.counter.read(), 42);
@@ -73,7 +73,7 @@ void main() {
     });
   });
 
-  group('Vault Secure Storage', () {
+  group('Keep Secure Storage', () {
     test('Write and Read (Async)', () async {
       await storage.secureToken.write('secret_value');
       expect(await storage.secureToken.read(), 'secret_value');
@@ -87,17 +87,17 @@ void main() {
     test('Data is actually encrypted in memory check', () {
       // Internal storage'a direkt erişip şifreli olduğunu doğruluyoruz
       // Bu private API erişimi gerektirir (yansıtma veya varsayım).
-      // Vault public API üzerinden bunu test edemeyiz, encryption interface testine güveniyoruz.
+      // Keep public API üzerinden bunu test edemeyiz, encryption interface testine güveniyoruz.
     });
   });
 
-  group('Vault External Storage', () {
+  group('Keep External Storage', () {
     test('Write and Read (Async)', () async {
       await storage.extData.write('hello_file');
       expect(await storage.extData.read(), 'hello_file');
 
       // Dosyanın diskte olduğunu doğrula
-      final file = File('${tempDir.path}/vault/external/ext_data');
+      final file = File('${tempDir.path}/keep/external/ext_data');
       expect(file.existsSync(), true);
     });
 
@@ -113,7 +113,7 @@ void main() {
 
       // Dosya içeriği şifreli olmalı
       final file = File(
-        '${tempDir.path}/vault/external/${storage.extSecure.name}',
+        '${tempDir.path}/keep/external/${storage.extSecure.name}',
       ); // Hashed name
       final content = file.readAsStringSync();
       expect(content, isNot(contains('super_secret_file')));

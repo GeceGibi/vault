@@ -1,15 +1,15 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// Exception thrown when a vault operation fails.
-class VaultException<T> implements Exception {
-  /// Creates a [VaultException].
-  const VaultException(this.message, {this.key, this.error, this.stackTrace});
+/// Exception thrown when a keep operation fails.
+class KeepException<T> implements Exception {
+  /// Creates a [KeepException].
+  const KeepException(this.message, {this.key, this.error, this.stackTrace});
 
   /// The error message.
   final String message;
 
-  /// The associated [VaultKey], if any.
-  final VaultKey<T>? key;
+  /// The associated [KeepKey], if any.
+  final KeepKey<T>? key;
 
   /// The underlying error object.
   final Object? error;
@@ -20,7 +20,7 @@ class VaultException<T> implements Exception {
   @override
   String toString() {
     final buffer = StringBuffer()
-      ..write('VaultException: $message')
+      ..write('KeepException: $message')
       ..write(', key: ${key?.name}')
       ..write(', error: $error')
       ..write(', stackTrace: $stackTrace');

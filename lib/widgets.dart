@@ -1,19 +1,19 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// A reactive widget that rebuilds when the value of a [VaultKey] changes.
-class VaultBuilder<T> extends StatelessWidget {
-  /// Creates a [VaultBuilder].
+/// A reactive widget that rebuilds when the value of a [KeepKey] changes.
+class KeepBuilder<T> extends StatelessWidget {
+  /// Creates a [KeepBuilder].
   ///
-  /// [vaultKey] The key to listen to.
+  /// [keepKey] The key to listen to.
   /// [builder] Callback that receives the latest value and returns a widget.
-  const VaultBuilder({
-    required this.vaultKey,
+  const KeepBuilder({
+    required this.keepKey,
     required this.builder,
     super.key,
   });
 
-  /// The vault key to monitor for changes.
-  final VaultKey<T> vaultKey;
+  /// The keep key to monitor for changes.
+  final KeepKey<T> keepKey;
 
   /// The builder function used to construct the UI based on the key's value.
   final Widget Function(BuildContext context, T? value) builder;
@@ -21,10 +21,10 @@ class VaultBuilder<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: vaultKey,
+      stream: keepKey,
       builder: (context, snapshot) {
         return FutureBuilder(
-          future: vaultKey.read(),
+          future: keepKey.read(),
           builder: (context, snapshot) {
             return builder(context, snapshot.data);
           },

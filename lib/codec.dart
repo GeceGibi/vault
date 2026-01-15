@@ -1,21 +1,21 @@
-part of 'vault.dart';
+part of 'keep.dart';
 
-/// Handles binary encoding and decoding of Vault data structures.
+/// Handles binary encoding and decoding of Keep data structures.
 ///
-/// The [VaultCodec] is responsible for serializing [VaultEntry] objects into optimized binary formats
+/// The [KeepCodec] is responsible for serializing [KeepEntry] objects into optimized binary formats
 /// for both internal (single-file) and external (multi-file) storage.
 ///
 /// It uses a **Binary Container** approach, where metadata (flags) and payload (data) are packed together.
 /// The payload itself is a JSON-encoded string converted to UTF-8 bytes to ensure compatibility with
 /// standard Dart types while maintaining the benefits of binary metadata.
-class VaultCodec {
+class KeepCodec {
   /// Flag bitmask for **Removable** keys (Bit 0).
   ///
   /// If this bit is set (1), the key is effectively "lazy-loaded" and candidates for
   /// cleanup operations via [clearRemovable].
   static const int _flagRemovable = 1;
 
-  /// Encodes a map of [VaultEntry] objects into a single binary block (for Internal Storage).
+  /// Encodes a map of [KeepEntry] objects into a single binary block (for Internal Storage).
   ///
   /// This method iterates through the registry and serializes each entry sequentially.
   ///
@@ -35,7 +35,7 @@ class VaultCodec {
   /// - **Value Payload (M Bytes):** The UTF-8 encoded JSON string of the stored value.
   ///
   /// Total Logic: `KeyLen + Key + Flags + ValLen + Value`.
-  static Uint8List encodeAll(Map<String, VaultEntry> entries) {
+  static Uint8List encodeAll(Map<String, KeepEntry> entries) {
     final buffer = BytesBuilder();
 
     entries.forEach((key, entry) {
@@ -80,15 +80,15 @@ class VaultCodec {
     return buffer.toBytes();
   }
 
-  /// Decodes a binary block into a map of [VaultEntry] objects (for Internal Storage).
+  /// Decodes a binary block into a map of [KeepEntry] objects (for Internal Storage).
   ///
-  /// This method parses the binary stream sequentially, reconstructing the [VaultEntry]
+  /// This method parses the binary stream sequentially, reconstructing the [KeepEntry]
   /// objects with their associated metadata flags.
   ///
   /// It is robust against partial reads but assumes the binary integrity is valid up to the
   /// last complete entry.
-  static Map<String, VaultEntry> decodeAll(Uint8List bytes) {
-    final map = <String, VaultEntry>{};
+  static Map<String, KeepEntry> decodeAll(Uint8List bytes) {
+    final map = <String, KeepEntry>{};
     var offset = 0;
 
     while (offset < bytes.length) {
@@ -132,7 +132,7 @@ class VaultCodec {
       final value = jsonDecode(jsonString);
       offset += valLen;
 
-      map[key] = VaultEntry(value, flags);
+      map[key] = KeepEntry(value, flags);
     }
 
     return map;
@@ -160,26 +160,26 @@ class VaultCodec {
     return buffer.toBytes();
   }
 
-  /// Decodes a binary payload into a [VaultEntry] (for External Storage).
+  /// Decodes a binary payload into a [KeepEntry] (for External Storage).
   ///
   /// Reads the first byte as flags and the rest as the JSON value.
-  static VaultEntry? decodePayload(Uint8List bytes) {
+  static KeepEntry? decodePayload(Uint8List bytes) {
     if (bytes.isEmpty) return null;
 
     final flags = bytes[0];
 
     // Case: Only flags byte exists (Empty payload)
     if (bytes.length == 1) {
-      return VaultEntry(null, flags);
+      return KeepEntry(null, flags);
     }
 
     final valBytes = bytes.sublist(1);
-    if (valBytes.isEmpty) return VaultEntry(null, flags);
+    if (valBytes.isEmpty) return KeepEntry(null, flags);
 
     try {
       final jsonString = utf8.decode(valBytes);
       final value = jsonDecode(jsonString);
-      return VaultEntry(value, flags);
+      return KeepEntry(value, flags);
     } catch (_) {
       // Return null on corruption to handle gracefully
       return null;
