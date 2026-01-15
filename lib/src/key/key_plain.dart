@@ -11,10 +11,12 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   /// [name] is the unique identifier for this key.
   /// [removable] indicates if the key should be cleared by [Keep.clearRemovable].
   /// [useExternalStorage] indicates if the value should be stored in its own file.
+  /// [storage] is an optional custom storage adapter for this specific key.
   KeepKeyPlain({
     required super.name,
     super.removable = false,
     super.useExternalStorage = false,
+    super.storage,
   });
 
   @override
@@ -23,8 +25,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       name: '$name.$subKeyName',
       removable: removable,
       useExternalStorage: useExternalStorage,
-    );
-    key.bind(keep);
+      storage: storage,
+    )..bind(keep);
     return key;
   }
 
@@ -32,7 +34,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   T? readSync() {
     try {
       return switch (useExternalStorage) {
-        true => keep.externalStorage.readSync(this),
+        true => externalStorage.readSync(this),
         false => keep.internalStorage.readSync(this),
       };
     } catch (error, stackTrace) {
@@ -55,7 +57,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
     try {
       return switch (useExternalStorage) {
-        true => await keep.externalStorage.read(this),
+        true => await externalStorage.read(this),
         false => keep.internalStorage.read(this),
       };
     } catch (error, stackTrace) {
@@ -84,7 +86,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
     try {
       if (useExternalStorage) {
-        await keep.externalStorage.write(this, value);
+        await externalStorage.write(this, value);
       } else {
         await keep.internalStorage.write(this, value);
       }

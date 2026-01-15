@@ -14,12 +14,14 @@ class KeepKeySecure<T> extends KeepKey<T> {
   /// [toStorage] maps type [T] to a JSON-encodable object.
   /// [removable] indicates if the key should be cleared by [Keep.clearRemovable].
   /// [useExternalStorage] indicates if the value should be stored in its own file.
+  /// [storage] is an optional custom storage adapter for this specific key.
   KeepKeySecure({
     required super.name,
     required this.fromStorage,
     required this.toStorage,
     super.removable,
     super.useExternalStorage,
+    super.storage,
   });
 
   /// Creates a sub-key by appending [subKeyName] to the current [name].
@@ -29,10 +31,10 @@ class KeepKeySecure<T> extends KeepKey<T> {
       name: '${super.name}.$subKeyName',
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
-    );
-    key.bind(keep);
+    )..bind(keep);
     return key;
   }
 
@@ -67,7 +69,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
   T? readSync() {
     try {
       final encrypted = switch (useExternalStorage) {
-        true => keep.externalStorage.readSync<String>(this),
+        true => externalStorage.readSync<String>(this),
         false => keep.internalStorage.readSync<String>(this),
       };
 
@@ -99,7 +101,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
 
     try {
       final encrypted = switch (useExternalStorage) {
-        true => await keep.externalStorage.read<String>(this),
+        true => await externalStorage.read<String>(this),
         false => await keep.internalStorage.read<String>(this),
       };
 
@@ -149,7 +151,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
     keep.onChangeController.add(this);
 
     if (useExternalStorage) {
-      await keep.externalStorage.write(this, encrypted);
+      await externalStorage.write(this, encrypted);
     } else {
       await keep.internalStorage.write(this, encrypted);
     }

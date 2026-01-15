@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:keep/src/keep.dart';
+import 'package:keep/src/storage/storage.dart';
 import 'package:keep/src/utils/utils.dart';
 
 part 'key_plain.dart';
@@ -17,16 +18,23 @@ part 'key_secure.dart';
 /// Implementations like [KeepKeyPlain] and [KeepKeySecure] define how the
 /// data is handled (e.g., plain JSON or encrypted).
 abstract class KeepKey<T> extends Stream<KeepKey<T>> {
-  /// Creates a [KeepKey].
-  ///
   /// [name] is the unique identifier for this key.
   /// [removable] indicates if the key should be cleared by [Keep.clearRemovable].
   /// [useExternalStorage] indicates if the value should be stored in its own file.
+  /// [storage] is an optional custom storage adapter for this specific key.
   KeepKey({
     required this.name,
     this.removable = false,
     this.useExternalStorage = false,
+    this.storage,
   });
+
+  /// The custom storage adapter for this key. Fallbacks to [keep.externalStorage].
+  final KeepStorage? storage;
+
+  /// The active external storage for this key.
+  @internal
+  KeepStorage get externalStorage => storage ?? keep.externalStorage;
 
   /// The [Keep] instance that manages this key's lifecycle and storage.
   Keep get keep => _keep;

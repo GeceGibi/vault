@@ -100,11 +100,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeyPlain<int>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
     );
     _pendingKeys.add(key);
     return key;
@@ -117,11 +119,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeySecure<int>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is int ? v : (v is String ? int.tryParse(v) : null),
     );
@@ -136,11 +140,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeyPlain<String>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
     );
     _pendingKeys.add(key);
     return key;
@@ -153,11 +159,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeySecure<String>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v?.toString(),
     );
@@ -170,11 +178,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeyPlain<bool>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
     );
     _pendingKeys.add(key);
     return key;
@@ -187,11 +197,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeySecure<bool>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is bool ? v : (v == 'true' || v == 1),
     );
@@ -204,11 +216,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeyPlain<double>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
     );
     _pendingKeys.add(key);
     return key;
@@ -221,11 +235,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeySecure<double>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) =>
           v is num ? v.toDouble() : (v is String ? double.tryParse(v) : null),
@@ -239,11 +255,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeyPlain<Map<String, dynamic>>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
     );
     _pendingKeys.add(key);
     return key;
@@ -254,11 +272,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeySecure<Map<String, dynamic>>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is Map ? v.cast<String, dynamic>() : null,
     );
@@ -271,11 +291,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeyPlain<List<T>>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
     );
     _pendingKeys.add(key);
     return key;
@@ -286,11 +308,13 @@ class Keep {
     String name, {
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeySecure<List<T>>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       toStorage: (v) => v,
       fromStorage: (v) => v is List ? v.cast<T>() : null,
     );
@@ -305,11 +329,13 @@ class Keep {
     required Object? Function(T value) toStorage,
     bool removable = false,
     bool useExternalStorage = false,
+    KeepStorage? storage,
   }) {
     final key = KeepKeySecure<T>(
       name: name,
       removable: removable,
       useExternalStorage: useExternalStorage,
+      storage: storage,
       fromStorage: fromStorage,
       toStorage: toStorage,
     );

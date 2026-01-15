@@ -216,14 +216,17 @@ class AppStorage extends Keep {
 }
 ```
 
----
+### Per-Key Custom Storage
 
-## Hybrid Storage Logic
+You can specify a custom storage adapter for individual keys. This overrides the global `externalStorage` for that specific key. This is perfect for keys that need a different location, encryption, or backend while keeping the rest of the app on the default storage.
 
-Keep optimizes performance by splitting data:
-
-1.  **Internal Storage (main.keep):** A single binary-obfuscated file containing small values and metadata.
-2.  **External Storage (/external/*):** Each key marked with `useExternalStorage: true` gets its own dedicated file. 
+```dart
+final specialData = Keep.string(
+  'special_key',
+  useExternalStorage: true,
+  storage: MyCloudStorage(), // This key alone will use MyCloudStorage
+);
+```
 
 ---
 
@@ -233,6 +236,10 @@ Keep optimizes performance by splitting data:
 - **KeepKey<T>**: Handle for data access. Supports `read()`, `write()`, and `Stream` listening.
 - **KeepKeySecure<T>**: Automatically handles encryption cycles.
 - **KeepBuilder**: Reactive widget for automatic UI updates.
+
+## Roadmap
+
+- [ ] **Migration:** Tools for schema versioning and data migrations.
 
 ---
 

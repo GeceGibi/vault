@@ -1,3 +1,9 @@
+## [0.0.3]
+
+### Added
+- **Per-Key Custom Storage:** Added support for specifying an optional `KeepStorage` for individual keys via factories, allowing multi-backend storage strategies.
+- **Enhanced Documentation:** Added realistic AES-GCM and Custom Database Storage implementation examples.
+
 ## [0.0.2]
 
 ### Added
