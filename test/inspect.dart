@@ -10,10 +10,17 @@ class TestKeep extends Keep {
         ),
       );
 
-  final username = Keep.string('username');
-  final secureToken = Keep.stringSecure('token');
-  final extData = Keep.string('ext_data', useExternalStorage: true);
-  final extSecure = Keep.stringSecure('ext_secure', useExternalStorage: true);
+  final KeepKey<String> username = Keep.string('username');
+  final KeepKey<String> secureToken = Keep.stringSecure('token');
+  final KeepKey<String> extData = Keep.string(
+    'ext_data',
+    useExternalStorage: true,
+  );
+
+  final KeepKey<String> extSecure = Keep.stringSecure(
+    'ext_secure',
+    useExternalStorage: true,
+  );
 }
 
 void main() {
@@ -30,8 +37,6 @@ void main() {
 
     final storage = TestKeep();
     await storage.init(path: dir.path);
-
-    print(storage.keys);
 
     // 1. Internal Plain
     print('Internal Plain: ${await storage.username.read()}');
