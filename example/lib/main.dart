@@ -98,12 +98,12 @@ class _TestButton extends StatelessWidget {
 }
 
 void _runAllTests() async {
-  print('\n=== VAULT TEST START ===\n');
+  print('\n=== KEEP TEST START ===\n');
   await _testStandardKeys();
   await _testSecureKeys();
   await _testExternalStorage();
   await _testReactivity();
-  print('\n=== VAULT TEST COMPLETE ===\n');
+  print('\n=== KEEP TEST COMPLETE ===\n');
 }
 
 Future<void> _testStandardKeys() async {
