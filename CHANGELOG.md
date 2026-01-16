@@ -1,14 +1,18 @@
 ## [0.2.0]
 ### Added
+- **Binary Format Versioning (V1):** Introduced a 1-byte version field to the binary storage format for both internal and external storage to facilitate future migrations.
+- **Migration Infrastructure:** Added `KeepMigration` to handle centralized data transformations and version-based migrations.
 - **Unified Key Hashing:** All storage keys (Plain & Secure) now use DJB2 hashing for their physical storage names (`storeName`). This prevents issues with special characters in file names and adds a layer of obfuscation for all keys.
 - **Payload Obfuscation for External Storage:** Byte shifting (ROL 1) is now consistently applied to both internal and external storage payloads.
 
 ### Changed
 - **Breaking Change (Secure Storage Format):** `KeepKeySecure` no longer wraps encrypted data in a Map `{ 'k': name, 'v': value }`. It now stores the raw encrypted value directly for improved efficiency and simplicity.
-- **Refactoring:** Extracted hashing and byte shifting logic into `KeepCodec` for better modularity and reuse.
+- **Refactoring:** Decoupled binary decoding and migration logic into `KeepCodec` and `KeepMigration`.
+- **Code Standards:** Standardized on explicit return blocks, multi-line if-statements, and complete internal documentation for better readability and maintenance.
 
 ### Fixed
 - **Empty File Handling:** Added robust null checks for empty files in external storage to prevent potential crashes.
+- **Migration Guard:** Added backward compatibility logic to handle legacy Map structures during the transition to the 0.2.0 format.
 
 ## [0.1.2]
 ### Added
