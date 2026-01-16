@@ -67,7 +67,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
       return fromStorage(decoded);
     } on KeepException<dynamic> {
       unawaited(remove());
-      rethrow;
+      return null;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -107,7 +107,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
       return fromStorage(decoded);
     } on KeepException<dynamic> {
       unawaited(remove());
-      rethrow;
+      return null;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),

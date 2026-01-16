@@ -52,7 +52,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
       return fromStorage != null ? fromStorage!(raw) : raw as T?;
     } on KeepException<dynamic> {
-      rethrow;
+      unawaited(remove());
+      return null;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -79,7 +80,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
       return fromStorage != null ? fromStorage!(raw) : raw as T?;
     } on KeepException<dynamic> {
-      rethrow;
+      unawaited(remove());
+      return null;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),

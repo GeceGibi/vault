@@ -1,3 +1,13 @@
+## [0.2.1]
+### Changed
+- **Consistent Exception Handling:** All catch blocks now properly wrap errors in `KeepException` and propagate them correctly.
+- **Read Methods Graceful Degradation:** `read()` and `readSync()` methods now return `null` instead of re-throwing when a `KeepException` occurs, ensuring graceful recovery from corrupted data.
+- **Write Methods Fail-Fast:** `write()` methods now always throw exceptions on failure, ensuring data integrity issues are immediately visible.
+
+### Fixed
+- **Duplicate `onError` Calls:** Fixed issue where `onError` callback was being called multiple times for the same exception when errors bubbled up through layers.
+- **Exception Propagation:** Added `on KeepException { rethrow }` pattern to prevent double-wrapping of exceptions in non-read operations.
+
 ## [0.2.0]
 ### Added
 - **Binary Format Versioning (V1):** Introduced a 1-byte version field to the binary storage format for both internal and external storage to facilitate future migrations.
