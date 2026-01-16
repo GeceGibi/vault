@@ -125,8 +125,14 @@ class KeepCodec {
       return KeepMigration.migrate(
         KeepMemoryValue(value, flags, version: version),
       );
-    } catch (_) {
-      return null;
+    } catch (error, stackTrace) {
+      final exception = KeepException<dynamic>(
+        'Failed to decode payload',
+        stackTrace: stackTrace,
+        error: error,
+      );
+
+      throw exception;
     }
   }
 

@@ -44,6 +44,7 @@ class KeepInternalStorage extends KeepStorage {
 
       keep.onError?.call(exception);
       memory = {};
+      throw exception;
     }
   }
 
@@ -70,6 +71,7 @@ class KeepInternalStorage extends KeepStorage {
 
         /// Call onError callback if provided
         _keep.onError?.call(exception);
+        throw exception;
       }
     });
   }

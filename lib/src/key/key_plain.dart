@@ -51,6 +51,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       if (raw == null) return null;
 
       return fromStorage != null ? fromStorage!(raw) : raw as T?;
+    } on KeepException<dynamic> {
+      rethrow;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -59,7 +61,6 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       );
 
       keep.onError?.call(exception);
-
       unawaited(remove());
       return null;
     }
@@ -77,6 +78,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       if (raw == null) return null;
 
       return fromStorage != null ? fromStorage!(raw) : raw as T?;
+    } on KeepException<dynamic> {
+      rethrow;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -85,7 +88,6 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       );
 
       keep.onError?.call(exception);
-
       unawaited(remove());
       return null;
     }
@@ -109,6 +111,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       } else {
         await keep.internalStorage.write(this, storageValue);
       }
+    } on KeepException<dynamic> {
+      rethrow;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -117,7 +121,6 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       );
 
       keep.onError?.call(exception);
-
       throw exception;
     }
   }

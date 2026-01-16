@@ -198,7 +198,9 @@ class DefaultKeepExternalStorage extends KeepStorage {
           stackTrace: stackTrace,
           error: error,
         );
+
         _keep.onError?.call(exception);
+        throw exception;
       }
     }
   }

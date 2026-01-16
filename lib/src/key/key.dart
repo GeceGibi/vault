@@ -106,6 +106,8 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       }
 
       return keep.internalStorage.exists(this);
+    } on KeepException<dynamic> {
+      rethrow;
     } catch (e, s) {
       final exception = toException(
         e.toString(),
@@ -114,7 +116,6 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       );
 
       keep.onError?.call(exception);
-
       throw exception;
     }
   }
@@ -129,6 +130,8 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       }
 
       return keep.internalStorage.existsSync(this);
+    } on KeepException<dynamic> {
+      rethrow;
     } catch (e, s) {
       final exception = toException(
         e.toString(),
@@ -137,7 +140,6 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       );
 
       keep.onError?.call(exception);
-
       throw exception;
     }
   }
@@ -165,8 +167,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       final currentValue = await read();
       final newValue = updateFn(currentValue);
       await write(newValue);
-    } on KeepException<T> catch (e) {
-      keep.onError?.call(e);
+    } on KeepException<T> {
       rethrow;
     } catch (error, stackTrace) {
       final exception = toException(
@@ -176,7 +177,6 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       );
 
       keep.onError?.call(exception);
-
       throw exception;
     }
   }
@@ -191,6 +191,8 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       } else {
         await keep.internalStorage.remove(this);
       }
+    } on KeepException<dynamic> {
+      rethrow;
     } catch (e, s) {
       final exception = toException(
         e.toString(),
@@ -199,7 +201,6 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
       );
 
       keep.onError?.call(exception);
-
       throw exception;
     }
   }

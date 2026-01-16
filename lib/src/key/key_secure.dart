@@ -65,6 +65,9 @@ class KeepKeySecure<T> extends KeepKey<T> {
       }
 
       return fromStorage(decoded);
+    } on KeepException<dynamic> {
+      unawaited(remove());
+      rethrow;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -102,6 +105,9 @@ class KeepKeySecure<T> extends KeepKey<T> {
       }
 
       return fromStorage(decoded);
+    } on KeepException<dynamic> {
+      unawaited(remove());
+      rethrow;
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -110,7 +116,6 @@ class KeepKeySecure<T> extends KeepKey<T> {
       );
 
       keep.onError?.call(exception);
-
       unawaited(remove());
       return null;
     }
@@ -126,18 +131,31 @@ class KeepKeySecure<T> extends KeepKey<T> {
       return;
     }
 
-    final payload = toStorage(value);
+    try {
+      final payload = toStorage(value);
 
-    final encrypted = await keep.encrypter.encrypt(
-      await compute(jsonEncode, payload),
-    );
+      final encrypted = await keep.encrypter.encrypt(
+        await compute(jsonEncode, payload),
+      );
 
-    keep.onChangeController.add(this);
+      keep.onChangeController.add(this);
 
-    if (useExternal) {
-      await externalStorage.write(this, encrypted);
-    } else {
-      await keep.internalStorage.write(this, encrypted);
+      if (useExternal) {
+        await externalStorage.write(this, encrypted);
+      } else {
+        await keep.internalStorage.write(this, encrypted);
+      }
+    } on KeepException<dynamic> {
+      rethrow;
+    } catch (error, stackTrace) {
+      final exception = toException(
+        error.toString(),
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      keep.onError?.call(exception);
+      throw exception;
     }
   }
 }
