@@ -54,9 +54,8 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
 
   /// The name used for physical storage on disk or in the internal map.
   ///
-  /// For [KeepKeyPlain], this is same as [name].
-  /// For [KeepKeySecure], this is the hashed version of [name].
-  String get storeName => name;
+  /// This is the hashed version of [name].
+  String get storeName => KeepCodec.generateHash(name);
 
   /// Whether this key is marked as 'removable'.
   ///

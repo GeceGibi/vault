@@ -44,27 +44,6 @@ class KeepKeySecure<T> extends KeepKey<T> {
   /// Converts typed object [T] to raw storage data.
   final Object? Function(T value) toStorage;
 
-  /// Generates a non-reversible hash for a given [key] name using DJB2.
-  ///
-  /// This is used to prevent the real key name from appearing in the storage
-  /// (e.g., as a filename or a key in a map), providing an extra layer of privacy.
-  static String generateHash(String key) {
-    final bytes = utf8.encode(key);
-    var hash = 5381; // DJB2 starting value
-
-    for (final byte in bytes) {
-      // (hash * 33) + byte
-      hash = ((hash << 5) + hash) + byte;
-    }
-
-    // Avoid negative by converting to unsigned 64-bit and radix-36
-    return hash.toUnsigned(64).toRadixString(36);
-  }
-
-  /// Returns the [name] hashed with DJB2 for storage obfuscation.
-  @override
-  String get storeName => generateHash(name);
-
   @override
   T? readSync() {
     try {
@@ -78,9 +57,9 @@ class KeepKeySecure<T> extends KeepKey<T> {
       }
 
       final decrypted = keep.encrypter.decryptSync(encrypted);
-      final package = jsonDecode(decrypted) as Map;
+      final decoded = jsonDecode(decrypted);
 
-      return fromStorage(package['v']);
+      return fromStorage(decoded);
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -110,9 +89,9 @@ class KeepKeySecure<T> extends KeepKey<T> {
       }
 
       final decrypted = await keep.encrypter.decrypt(encrypted);
-      final package = await compute(jsonDecode, decrypted) as Map;
+      final decoded = await compute(jsonDecode, decrypted);
 
-      return fromStorage(package['v']);
+      return fromStorage(decoded);
     } catch (error, stackTrace) {
       final exception = toException(
         error.toString(),
@@ -137,15 +116,10 @@ class KeepKeySecure<T> extends KeepKey<T> {
       return;
     }
 
-    // Wrap the name and value: { 'k': original_name, 'v': value }
-    // This allows key discovery from the encrypted payload.
-    final package = {
-      'k': super.name,
-      'v': toStorage(value),
-    };
+    final payload = toStorage(value);
 
     final encrypted = await keep.encrypter.encrypt(
-      await compute(jsonEncode, package),
+      await compute(jsonEncode, payload),
     );
 
     keep.onChangeController.add(this);

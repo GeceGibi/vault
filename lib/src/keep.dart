@@ -411,7 +411,6 @@ class Keep {
   }
 
   /// Returns a snapshot of all keys currently stored in the internal (memory) storage.
-  /// For secure keys, discovers the original name from the payload.
   List<KeepKey<dynamic>> get keys {
     return List.unmodifiable(_registry.entries.map((k) => k.value).toList());
   }

@@ -91,7 +91,9 @@ class DefaultKeepExternalStorage extends KeepStorage {
     if (!file.existsSync()) return null;
 
     final bytes = file.readAsBytesSync();
-    if (bytes.isEmpty) return null;
+    if (bytes.isEmpty) {
+      return null;
+    }
 
     final entry = KeepCodec.decodePayload(bytes);
     return entry?.value as V?;

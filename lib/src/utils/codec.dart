@@ -16,10 +16,7 @@ class KeepCodec {
   @internal
   static const int flagRemovable = 1;
 
-  /// Flag bitmask for **Secure** keys (Bit 1).
-  ///
-  /// Indicates that the payload is encrypted and contains its original key name
-  /// for discovery in internal storage.
+  /// Indicates that the payload is encrypted.
   @internal
   static const int flagSecure = 2;
 
@@ -85,17 +82,7 @@ class KeepCodec {
       buffer.add(valBytes);
     });
 
-    final raw = buffer.toBytes();
-
-    // Byte Shifting: Obfuscate the entire binary block before writing.
-    // We apply a simple bitwise left rotation (ROL 1) to each byte.
-    // This prevents standard text/JSON viewers from reading the file contents.
-    for (var i = 0; i < raw.length; i++) {
-      final b = raw[i];
-      raw[i] = ((b << 1) | (b >> 7)) & 0xFF;
-    }
-
-    return raw;
+    return shiftBytes(buffer.toBytes());
   }
 
   /// Decodes a binary block into a map of [KeepMemoryValue] objects (for Internal Storage).
@@ -109,13 +96,7 @@ class KeepCodec {
     if (bytes.isEmpty) return {};
 
     // Clone the bytes to avoid modifying the original buffer.
-    final data = Uint8List.fromList(bytes);
-
-    // Byte Shifting: Reverse the obfuscation (ROR 1).
-    for (var i = 0; i < data.length; i++) {
-      final b = data[i];
-      data[i] = ((b >> 1) | (b << 7)) & 0xFF;
-    }
+    final data = unShiftBytes(Uint8List.fromList(bytes));
 
     final map = <String, KeepMemoryValue>{};
     var offset = 0;
@@ -181,24 +162,27 @@ class KeepCodec {
       ..addByte(flags)
       ..add(valBytes);
 
-    return buffer.toBytes();
+    return shiftBytes(buffer.toBytes());
   }
 
   /// Decodes a binary payload into a [KeepMemoryValue] (for External Storage).
   ///
   /// Reads the first byte as flags and the rest as the JSON value.
   static KeepMemoryValue? decodePayload(Uint8List bytes) {
-    if (bytes.isEmpty) return null;
+    if (bytes.isEmpty) {
+      return null;
+    }
 
-    final flags = bytes[0];
+    final data = unShiftBytes(bytes);
+    final flags = data[0];
 
     // Case: Only flags byte exists (Empty payload)
-    if (bytes.length == 1) {
+    if (data.length == 1) {
       return KeepMemoryValue(null, flags);
     }
 
     try {
-      final valBytes = bytes.sublist(1);
+      final valBytes = data.sublist(1);
       final jsonString = utf8.decode(valBytes);
       final value = jsonDecode(jsonString);
       return KeepMemoryValue(value, flags);
@@ -206,5 +190,43 @@ class KeepCodec {
       // Return null on corruption to handle gracefully
       return null;
     }
+  }
+
+  /// Generates a non-reversible hash for a given [key] name using DJB2.
+  ///
+  /// This is used to prevent the real key name from appearing in the storage
+  /// (e.g., as a filename or a key in a map), providing an extra layer of privacy.
+  static String generateHash(String key) {
+    final bytes = utf8.encode(key);
+    var hash = 5381; // DJB2 starting value
+
+    for (final byte in bytes) {
+      // (hash * 33) + byte
+      hash = ((hash << 5) + hash) + byte;
+    }
+
+    // Avoid negative by converting to unsigned 64-bit and radix-36
+    return hash.toUnsigned(64).toRadixString(36);
+  }
+
+  /// Byte Shifting: Obfuscate the entire binary block before writing.
+  /// We apply a simple bitwise left rotation (ROL 1) to each byte.
+  /// This prevents standard text/JSON viewers from reading the file contents.
+  static Uint8List shiftBytes(Uint8List bytes) {
+    for (var i = 0; i < bytes.length; i++) {
+      final b = bytes[i];
+      bytes[i] = ((b << 1) | (b >> 7)) & 0xFF;
+    }
+
+    return Uint8List.fromList(bytes);
+  }
+
+  /// Reverses the byte shifting obfuscation (ROR 1).
+  static Uint8List unShiftBytes(Uint8List bytes) {
+    for (var i = 0; i < bytes.length; i++) {
+      final b = bytes[i];
+      bytes[i] = ((b >> 1) | (b << 7)) & 0xFF;
+    }
+    return bytes;
   }
 }
