@@ -1,3 +1,7 @@
+## [0.2.4]
+### Changed
+- Added `@mustCallSuper` annotation to `Keep.init()` method.
+
 ## [0.2.3]
 ### Added
 - Added `KeepValueType` enum for type-safe binary encoding.

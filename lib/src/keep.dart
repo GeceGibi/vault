@@ -398,6 +398,7 @@ class Keep {
   ///
   /// [path] specifies the base directory. Defaults to app support directory.
   /// [folderName] is the name of the folder created inside [path].
+  @mustCallSuper
   Future<void> init({String? path, String folderName = 'keep'}) async {
     _path = path ?? (await getApplicationSupportDirectory()).path;
     _folderName = folderName;
