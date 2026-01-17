@@ -21,7 +21,7 @@ Add keep to your pubspec.yaml:
 
 ```yaml
 dependencies:
-  keep: ^0.2.2
+  keep: ^0.2.3
 ```
 
 ---

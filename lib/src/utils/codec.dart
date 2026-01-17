@@ -1,5 +1,83 @@
 part of 'utils.dart';
 
+/// Represents the type of a stored value in binary format.
+enum KeepValueType {
+  /// Unknown type.
+  tUnknown(0),
+
+  /// Integer type.
+  tInt(1),
+
+  /// Double type.
+  tDouble(2),
+
+  /// Boolean type.
+  tBool(3),
+
+  /// String type.
+  tString(4),
+
+  /// List type.
+  tList(5),
+
+  /// Map type.
+  tMap(6)
+  ;
+
+  const KeepValueType(this.byte);
+
+  /// The byte value used in binary encoding.
+  final int byte;
+
+  /// Returns the [KeepValueType] for the given [byte], or null if not found.
+  static KeepValueType? fromByte(int byte) {
+    for (final type in values) {
+      if (type.byte == byte) return type;
+    }
+    return null;
+  }
+
+  /// Parses the raw [value] to the expected type.
+  T? parse<T>(Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (this == tInt) {
+      final parsed = value is int ? value : int.tryParse(value.toString());
+      return parsed as T?;
+    }
+
+    if (this == tDouble) {
+      final parsed = value is double
+          ? value
+          : (value is num
+                ? value.toDouble()
+                : double.tryParse(value.toString()));
+      return parsed as T?;
+    }
+
+    if (this == tBool) {
+      final parsed = value is bool ? value : (value == 'true' || value == 1);
+      return parsed as T?;
+    }
+
+    if (this == tString) {
+      return value.toString() as T?;
+    }
+
+    if (this == tList) {
+      return (value is List ? value : null) as T?;
+    }
+
+    if (this == tMap) {
+      return (value is Map ? value : null) as T?;
+    }
+
+    return null;
+  }
+}
+
 /// Handles binary encoding and decoding of Keep data structures.
 class KeepCodec {
   /// Flag bitmask for **Removable** keys (Bit 0).
@@ -9,6 +87,17 @@ class KeepCodec {
   /// Indicates that the payload is encrypted.
   @internal
   static const int flagSecure = 2;
+
+  /// Infers the [KeepValueType] from a dynamic value.
+  static KeepValueType inferType(Object? value) {
+    if (value is int) return .tInt;
+    if (value is double) return .tDouble;
+    if (value is bool) return .tBool;
+    if (value is String) return .tString;
+    if (value is List) return .tList;
+    if (value is Map) return .tMap;
+    return .tUnknown;
+  }
 
   /// Encodes all entries into a single binary block (for Internal Storage).
   static Uint8List encodeAll(Map<String, KeepMemoryValue> entries) {
@@ -21,12 +110,13 @@ class KeepCodec {
       final jsonString = jsonEncode(entry.value);
       final valBytes = utf8.encode(jsonString);
 
-      // [KeyLen] [Key] [Flags] [Version] [ValLen] [Value]
+      // [KeyLen] [Key] [Flags] [Version] [Type] [ValLen] [Value]
       buffer
         ..addByte(keyBytes.length)
         ..add(keyBytes)
         ..addByte(entry.flags)
-        ..addByte(entry.version);
+        ..addByte(entry.version)
+        ..addByte(entry.type.byte);
 
       final valLen = valBytes.length;
       buffer
@@ -58,10 +148,11 @@ class KeepCodec {
       final key = utf8.decode(data.sublist(offset, offset + keyLen));
       offset += keyLen;
 
-      // 2. Read Flags & Version
-      if (offset + 2 > data.length) break;
+      // 2. Read Flags, Version & Type
+      if (offset + 3 > data.length) break;
       final flags = data[offset++];
       final version = data[offset++];
+      final type = data[offset++];
 
       // 3. Read Value Length
       if (offset + 4 > data.length) break;
@@ -81,7 +172,12 @@ class KeepCodec {
       offset += valLen;
 
       map[key] = KeepMigration.migrate(
-        KeepMemoryValue(value, flags, version: version),
+        KeepMemoryValue(
+          value,
+          flags,
+          version: version,
+          type: KeepValueType.fromByte(type),
+        ),
       );
     }
 
@@ -94,10 +190,12 @@ class KeepCodec {
     final jsonString = jsonEncode(value);
     final valBytes = utf8.encode(jsonString);
 
-    // [Flags] [Version] [JSON]
+    // [Flags] [Version] [Type] [JSON]
+    final type = inferType(value);
     buffer
       ..addByte(flags)
       ..addByte(Keep.version)
+      ..addByte(type.byte)
       ..add(valBytes);
 
     return shiftBytes(buffer.toBytes());
@@ -110,20 +208,26 @@ class KeepCodec {
     }
 
     final data = unShiftBytes(bytes);
-    if (data.length < 2) {
+    if (data.length < 3) {
       return null;
     }
 
     final flags = data[0];
     final version = data[1];
+    final type = data[2];
 
     try {
-      final jsonBytes = data.sublist(2);
+      final jsonBytes = data.sublist(3);
       final jsonString = utf8.decode(jsonBytes);
       final value = jsonDecode(jsonString);
 
       return KeepMigration.migrate(
-        KeepMemoryValue(value, flags, version: version),
+        KeepMemoryValue(
+          value,
+          flags,
+          version: version,
+          type: KeepValueType.fromByte(type),
+        ),
       );
     } catch (error, stackTrace) {
       final exception = KeepException<dynamic>(

@@ -1,3 +1,9 @@
+## [0.2.3]
+### Added
+- Added `KeepValueType` enum for type-safe binary encoding.
+- Type byte now stored in binary format header.
+- Added `KeepValueType.parse<T>()` for default type conversions.
+
 ## [0.2.2]
 ### Changed
 - Optimized sub-key registration and disk synchronization (synchronous registration, smart background sync).
