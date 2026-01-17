@@ -21,7 +21,7 @@ Add keep to your pubspec.yaml:
 
 ```yaml
 dependencies:
-  keep: ^0.0.2
+  keep: ^0.2.2
 ```
 
 ---
@@ -238,16 +238,33 @@ final specialData = Keep.string(
 
 ---
 
+### 6. Sub-Keys (Nested Storage)
+Create nested keys dynamically using the call operator. This allows for hierarchical data organization without defining explicit fields for every possible key.
+
+```dart
+// Define a root key
+final users = Keep.string('users');
+
+// Recommended: Assign sub-keys to variables for better readability and safety
+final alice = users('alice');
+await alice.write('Alice Data');
+
+final aliceSettings = alice('settings');
+await aliceSettings.write('Dark Mode');
+```
+
+---
+
 ## Documentation
 
 - **Keep**: The orchestrator. Handles lifecycle and registry.
-- **KeepKey<T>**: Handle for data access. Supports `read()`, `write()`, and `Stream` listening.
+- **KeepKey<T>**: Handle for data access. Supports `read()`, `write()`, and `Stream` listening. Use `key('subKey')` to create nested keys.
 - **KeepKeySecure<T>**: Automatically handles encryption cycles.
 - **KeepBuilder**: Reactive widget for automatic UI updates.
 
 ## Roadmap
 
-- [ ] **Migration:** Tools for schema versioning and data migrations.
+- [x] **Migration:** Tools for schema versioning and data migrations.
 
 ---
 

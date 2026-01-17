@@ -28,15 +28,21 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   final Object? Function(T value)? toStorage;
 
   @override
-  KeepKeyPlain<T> call(Object? subKeyName) {
-    final key = KeepKeyPlain<T>(
-      name: '$name.$subKeyName',
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
-    )..bind(keep);
+  KeepKeyPlain<T> call(String subKeyName) {
+    final key =
+        KeepKeyPlain<T>(
+            name: subKeyName,
+            removable: removable,
+            useExternal: useExternal,
+            storage: storage,
+            fromStorage: fromStorage,
+            toStorage: toStorage,
+          )
+          ..bind(_keep)
+          .._parent = this;
+
+    subKeys.register(key);
+
     return key;
   }
 
@@ -45,7 +51,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
     try {
       final raw = switch (useExternal) {
         true => externalStorage.readSync<dynamic>(this),
-        false => keep.internalStorage.readSync<dynamic>(this),
+        false => _keep.internalStorage.readSync<dynamic>(this),
       };
 
       if (raw == null) return null;
@@ -61,7 +67,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
         stackTrace: stackTrace,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       unawaited(remove());
       return null;
     }
@@ -69,12 +75,12 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
   @override
   Future<T?> read() async {
-    await keep.ensureInitialized;
+    await _keep.ensureInitialized;
 
     try {
       final raw = await (useExternal
           ? externalStorage.read<dynamic>(this)
-          : keep.internalStorage.read<dynamic>(this));
+          : _keep.internalStorage.read<dynamic>(this));
 
       if (raw == null) return null;
 
@@ -89,16 +95,17 @@ class KeepKeyPlain<T> extends KeepKey<T> {
         stackTrace: stackTrace,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       unawaited(remove());
       return null;
     }
   }
 
   @override
-  Future<void> write(T? value) async {
-    await keep.ensureInitialized;
-    keep.onChangeController.add(this);
+  Future<void> write(T value) async {
+    await _keep.ensureInitialized;
+
+    _keep.onChangeController.add(this);
 
     if (value == null) {
       await remove();
@@ -111,7 +118,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       if (useExternal) {
         await externalStorage.write(this, storageValue);
       } else {
-        await keep.internalStorage.write(this, storageValue);
+        await _keep.internalStorage.write(this, storageValue);
       }
     } on KeepException<dynamic> {
       rethrow;
@@ -122,7 +129,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
         stackTrace: stackTrace,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }

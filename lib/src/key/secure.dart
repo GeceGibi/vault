@@ -26,15 +26,20 @@ class KeepKeySecure<T> extends KeepKey<T> {
 
   /// Creates a sub-key by appending [subKeyName] to the current [name].
   @override
-  KeepKeySecure<T> call(Object? subKeyName) {
-    final key = KeepKeySecure<T>(
-      name: '${super.name}.$subKeyName',
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
-    )..bind(keep);
+  KeepKeySecure<T> call(String subKeyName) {
+    final key =
+        KeepKeySecure<T>(
+            name: subKeyName,
+            removable: removable,
+            useExternal: useExternal,
+            storage: storage,
+            fromStorage: fromStorage,
+            toStorage: toStorage,
+          )
+          ..bind(_keep)
+          .._parent = this;
+
+    subKeys.register(key);
     return key;
   }
 
@@ -49,14 +54,14 @@ class KeepKeySecure<T> extends KeepKey<T> {
     try {
       final encrypted = switch (useExternal) {
         true => externalStorage.readSync<String>(this),
-        false => keep.internalStorage.readSync<String>(this),
+        false => _keep.internalStorage.readSync<String>(this),
       };
 
       if (encrypted == null) {
         return null;
       }
 
-      final decrypted = keep.encrypter.decryptSync(encrypted);
+      final decrypted = _keep.encrypter.decryptSync(encrypted);
       final decoded = jsonDecode(decrypted);
 
       // Migration Guard: Handle legacy { 'k': name, 'v': value } format
@@ -75,7 +80,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
         stackTrace: stackTrace,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       unawaited(remove());
       return null;
     }
@@ -84,19 +89,19 @@ class KeepKeySecure<T> extends KeepKey<T> {
   /// Reads the encrypted string from storage, decrypts it, and maps it to [T].
   @override
   Future<T?> read() async {
-    await keep.ensureInitialized;
+    await _keep.ensureInitialized;
 
     try {
       final encrypted = switch (useExternal) {
         true => await externalStorage.read<String>(this),
-        false => await keep.internalStorage.read<String>(this),
+        false => await _keep.internalStorage.read<String>(this),
       };
 
       if (encrypted == null) {
         return null;
       }
 
-      final decrypted = await keep.encrypter.decrypt(encrypted);
+      final decrypted = await _keep.encrypter.decrypt(encrypted);
       final decoded = await compute(jsonDecode, decrypted);
 
       // Migration Guard: Handle legacy { 'k': name, 'v': value } format
@@ -115,7 +120,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
         stackTrace: stackTrace,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       unawaited(remove());
       return null;
     }
@@ -123,8 +128,8 @@ class KeepKeySecure<T> extends KeepKey<T> {
 
   /// Maps [value] to JSON, encrypts the result, and writes it to storage.
   @override
-  Future<void> write(T? value) async {
-    await keep.ensureInitialized;
+  Future<void> write(T value) async {
+    await _keep.ensureInitialized;
 
     if (value == null) {
       await remove();
@@ -134,16 +139,16 @@ class KeepKeySecure<T> extends KeepKey<T> {
     try {
       final payload = toStorage(value);
 
-      final encrypted = await keep.encrypter.encrypt(
+      final encrypted = await _keep.encrypter.encrypt(
         await compute(jsonEncode, payload),
       );
 
-      keep.onChangeController.add(this);
+      _keep.onChangeController.add(this);
 
       if (useExternal) {
         await externalStorage.write(this, encrypted);
       } else {
-        await keep.internalStorage.write(this, encrypted);
+        await _keep.internalStorage.write(this, encrypted);
       }
     } on KeepException<dynamic> {
       rethrow;
@@ -154,7 +159,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
         stackTrace: stackTrace,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }

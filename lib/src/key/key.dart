@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:keep/src/keep.dart';
 import 'package:keep/src/storage/storage.dart';
 import 'package:keep/src/utils/utils.dart';
 
-part 'key_plain.dart';
-part 'key_secure.dart';
+part 'plain.dart';
+part 'secure.dart';
+part 'sub_key_manager.dart';
 
 /// Abstract base class for all typed keys in [Keep].
 ///
@@ -36,12 +38,14 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   /// The custom storage adapter for this key. Fallbacks to [Keep.externalStorage].
   final KeepStorage? storage;
 
+  /// The parent key, if this is a sub-key.
+  KeepKey<T>? _parent;
+
   /// The active external storage for this key.
   @internal
-  KeepStorage get externalStorage => storage ?? keep.externalStorage;
+  KeepStorage get externalStorage => storage ?? _keep.externalStorage;
 
   /// The [Keep] instance that manages this key's lifecycle and storage.
-  Keep get keep => _keep;
   late Keep _keep;
 
   @internal
@@ -55,7 +59,13 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   /// The name used for physical storage on disk or in the internal map.
   ///
   /// This is the hashed version of [name].
-  String get storeName => KeepCodec.generateHash(name);
+  String get storeName {
+    if (_parent == null) {
+      return KeepCodec.generateHash(name);
+    }
+
+    return KeepCodec.generateHash('${_parent!.name}\$$name');
+  }
 
   /// Whether this key is marked as 'removable'.
   ///
@@ -63,8 +73,11 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   /// can be cleared without affecting the application's core state.
   final bool removable;
 
+  /// Manages sub-key registration and persistence.
+  late final SubKeyManager<T> subKeys = SubKeyManager<T>(this);
+
   /// Creates a sub-key by appending [subKeyName] to the current [name].
-  KeepKey<T> call(Object? subKeyName);
+  KeepKey<T> call(String subKeyName);
 
   /// Reads the value of this key synchronously from the storage.
   ///
@@ -94,18 +107,19 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   ///
   /// If [value] is `null`, the key is effectively removed from the storage.
   /// Every write operation notifies listeners through the [Stream] interface.
+  @mustCallSuper
   Future<void> write(T value);
 
   /// Returns `true` if this key exists in the storage.
   Future<bool> get exists async {
-    await keep.ensureInitialized;
+    await _keep.ensureInitialized;
 
     try {
       if (useExternal) {
-        return keep.externalStorage.exists(this);
+        return _keep.externalStorage.exists(this);
       }
 
-      return keep.internalStorage.exists(this);
+      return _keep.internalStorage.exists(this);
     } on KeepException<dynamic> {
       rethrow;
     } catch (e, s) {
@@ -115,7 +129,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
         stackTrace: s,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
@@ -126,10 +140,10 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
   bool get existsSync {
     try {
       if (useExternal) {
-        return keep.externalStorage.existsSync(this);
+        return _keep.externalStorage.existsSync(this);
       }
 
-      return keep.internalStorage.existsSync(this);
+      return _keep.internalStorage.existsSync(this);
     } on KeepException<dynamic> {
       rethrow;
     } catch (e, s) {
@@ -139,7 +153,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
         stackTrace: s,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
@@ -176,20 +190,20 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
         stackTrace: stackTrace,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
 
   /// Removes this key and its associated value from both memory and disk.
   Future<void> remove() async {
-    await keep.ensureInitialized;
+    await _keep.ensureInitialized;
 
     try {
       if (useExternal) {
-        await keep.externalStorage.remove(this);
+        await _keep.externalStorage.remove(this);
       } else {
-        await keep.internalStorage.remove(this);
+        await _keep.internalStorage.remove(this);
       }
     } on KeepException<dynamic> {
       rethrow;
@@ -200,7 +214,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
         stackTrace: s,
       );
 
-      keep.onError?.call(exception);
+      _keep.onError?.call(exception);
       throw exception;
     }
   }
@@ -212,7 +226,7 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    return keep.onChange
+    return _keep.onChange
         .where((key) => key.name == name)
         .cast<KeepKey<T>>()
         .listen(
@@ -221,5 +235,10 @@ abstract class KeepKey<T> extends Stream<KeepKey<T>> {
           onDone: onDone,
           cancelOnError: cancelOnError,
         );
+  }
+
+  @override
+  String toString() {
+    return 'KeepKey<$T>(name: $name, external: $useExternal, removable: $removable)';
   }
 }

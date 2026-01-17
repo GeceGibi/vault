@@ -21,6 +21,8 @@ class TestKeep extends Keep {
     'ext_secure',
     useExternal: true,
   );
+
+  final KeepKey<String> users = Keep.string('users');
 }
 
 void main() {
@@ -28,9 +30,9 @@ void main() {
     final dir = Directory('${Directory.current.path}/test/keep_data_inspect');
 
     // Clean start
-    // if (dir.existsSync()) {
-    //   await dir.delete(recursive: true);
-    // }
+    if (dir.existsSync()) {
+      await dir.delete(recursive: true);
+    }
     await dir.create(recursive: true);
 
     print('Storage Path: ${dir.path}');
@@ -56,9 +58,27 @@ void main() {
     print('External Secure: ${await storage.extSecure.read()}');
     await storage.extSecure.write('external_secret_content');
 
-    // Wait for internal storage debounce timer (150ms) + IO
-    await Future<void>.delayed(const Duration(seconds: 1));
+    // 5. Sub-keys
+    print('Creating simple sub-keys...');
 
-    print('Data generated successfully! Check ${dir.path}');
+    await storage.users('u1').write('u1-val');
+    await storage.users('u2').write('u2-val');
+    await storage.users('u3').write('u3-val');
+
+    print('Sub-keys created.');
+
+    // Listing logic (once implemented in SubKeyManager)
+    // final keys = await storage.users.subKeys.keys;
+    // print('Keys: $keys');
+
+    print('\nChecking values:');
+    print('u1: ${await storage.users('u1').read()}');
+    print('u2: ${await storage.users('u2').read()}');
+    print('u3: ${await storage.users('u3').read()}');
+
+    print('Sub-keys: ${storage.users.subKeys.keys}');
+
+    await Future<void>.delayed(const Duration(seconds: 1));
+    print('\nData generated successfully! Check ${dir.path}');
   });
 }

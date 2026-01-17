@@ -1,78 +1,74 @@
-## [0.2.1]
+## [0.2.2]
 ### Changed
-- **Consistent Exception Handling:** All catch blocks now properly wrap errors in `KeepException` and propagate them correctly.
-- **Read Methods Graceful Degradation:** `read()` and `readSync()` methods now return `null` instead of re-throwing when a `KeepException` occurs, ensuring graceful recovery from corrupted data.
-- **Write Methods Fail-Fast:** `write()` methods now always throw exceptions on failure, ensuring data integrity issues are immediately visible.
+- Optimized sub-key registration and disk synchronization (synchronous registration, smart background sync).
 
 ### Fixed
-- **Duplicate `onError` Calls:** Fixed issue where `onError` callback was being called multiple times for the same exception when errors bubbled up through layers.
-- **Exception Propagation:** Added `on KeepException { rethrow }` pattern to prevent double-wrapping of exceptions in non-read operations.
+- Resolved issues with sub-key hierarchy and traversal logic.
+
+## [0.2.1]
+### Changed
+- Improved global exception handling and error propagation stability.
+- `read` methods now return `null` instead of throwing on corruption, ensuring graceful degradation.
+- `write` methods now consistently fail-fast on errors.
+
+### Fixed
+- Fixed duplicate `onError` callbacks.
 
 ## [0.2.0]
 ### Added
-- **Binary Format Versioning (V1):** Introduced a 1-byte version field to the binary storage format for both internal and external storage to facilitate future migrations.
-- **Migration Infrastructure:** Added `KeepMigration` to handle centralized data transformations and version-based migrations.
-- **Unified Key Hashing:** All storage keys (Plain & Secure) now use DJB2 hashing for their physical storage names (`storeName`). This prevents issues with special characters in file names and adds a layer of obfuscation for all keys.
-- **Payload Obfuscation for External Storage:** Byte shifting (ROL 1) is now consistently applied to both internal and external storage payloads.
+- Introduced binary format versioning and migration infrastructure (V1).
+- Improved storage key hashing and internal data obfuscation.
 
 ### Changed
-- **Breaking Change (Secure Storage Format):** `KeepKeySecure` no longer wraps encrypted data in a Map `{ 'k': name, 'v': value }`. It now stores the raw encrypted value directly for improved efficiency and simplicity.
-- **Refactoring:** Decoupled binary decoding and migration logic into `KeepCodec` and `KeepMigration`.
-- **Code Standards:** Standardized on explicit return blocks, multi-line if-statements, and complete internal documentation for better readability and maintenance.
+- **Breaking:** `KeepKeySecure` now stores raw encrypted values directly for better efficiency.
+- Standardized code structure and return patterns.
 
 ### Fixed
-- **Empty File Handling:** Added robust null checks for empty files in external storage to prevent potential crashes.
-- **Migration Guard:** Added backward compatibility logic to handle legacy Map structures during the transition to the 0.2.0 format.
+- Fixed crash when handling empty external storage files.
+- Added legacy format support during migration.
 
 ## [0.1.2]
 ### Added
-- **`Keep.custom`:** Added a new method for plain (unencrypted) custom storage keys.
+- Added `Keep.custom` for plain custom storage keys.
 
 ### Changed
-- **`Keep.customSecure`:** Renamed the existing `custom` method for secure keys to `customSecure` to align with the naming convention.
+- Renamed `custom` to `customSecure` for consistency.
 
 ## [0.1.1]
 ### Added
-- **Exports:** Exposed `KeepBuilder` and `KeepException` to allow easier integration and error handling.
+- Exported `KeepBuilder` and `KeepException`.
 
 ### Changed
-- **API Refinement:** Renamed `useExternalStorage` to `useExternal` across all factories for a more concise and consistent API.
-- **Maintenance:** Applied minor code formatting and internal optimizations to storage methods.
+- Renamed `useExternalStorage` to `useExternal`.
 
 ## [0.1.0]
 ### Added
-- **`KeepKeyPlain` Converters:** Added `fromStorage` and `toStorage` support to `KeepKeyPlain`, enabling custom serialization and deserialization for non-encrypted keys.
-- **Factory Type Safety:** Enhanced `Keep.list` and `Keep.map` factories with automatic `cast<T>()` and `cast<String, dynamic>()` support to prevent `List<dynamic>` to `List<String>` type cast errors from JSON.
+- Added `fromStorage`/`toStorage` converters to `KeepKeyPlain`.
+- Enhanced type safety for `Keep.list` and `Keep.map` factories.
 
 ## [0.0.4]
 ### Added
-- **Implicit External Storage:** Providing a custom `storage` adapter now automatically enables `useExternalStorage`, simplifying key definitions.
+- Providing a custom `storage` adapter now automatically enables `useExternal`.
 
 ## [0.0.3]
 ### Added
-- **Per-Key Custom Storage:** Added support for specifying an optional `KeepStorage` for individual keys via factories, allowing multi-backend storage strategies.
-- **Enhanced Documentation:** Added realistic AES-GCM and Custom Database Storage implementation examples.
+- Support for per-key custom `KeepStorage` adapters.
 
 ## [0.0.2]
 ### Added
-- **Static Key Factories:** Added `Keep.integer`, `Keep.stringSecure`, etc., enabling cleaner field declarations without `late`.
-- **Decimal Support:** Added `decimal` and `decimalSecure` factories for typed-safe double storage.
-- **Inline Documentation:** Added comprehensive DartDocs for all public members and constructors.
+- Added static key factories (`Keep.integer`, `Keep.stringSecure`, etc.).
+- Added `decimal` and `decimalSecure` factories.
 
 ### Changed
-- **API Simplification:** `Keep.keys` and `Keep.removableKeys` now return `List<KeepKey>` instead of `List<String>`, utilizing the internal registry for faster access.
-- **Registry-Based Discovery:** Removed manual disk scanning for key discovery (`keysExternal` removed) in favor of the new automatic registration system.
-- **Reactive Cleanup:** `clearRemovable()` now automatically notifies all listeners of the affected keys via `onChangeController`.
-- **Metadata Optimization:** Eliminated `meta.keep` file; external storage is now purely code-driven.
-- **Structure:** Removed `KeepKeyManager` and organized factories directly within the `Keep` class.
+- `Keep.keys` now uses internal registry for faster access.
+- `clearRemovable()` automatically notifies listeners.
 
 ### Fixed
-- **Type Safety:** Improved `num` to `double` conversion in decimal factories.
-- **Boolean Parsing:** Added support for `1` as truthy in `booleanSecure`.
-- **Duplicate Directives:** Cleaned up project file organization and part directives.
+- Improved `num` to `double` conversion.
+- Fixed boolean parsing support.
 
 ## [0.0.1+1]
-- Internal build stabilization and testing.
+- Internal build stabilization.
 
 ## [0.0.1]
 - Initial release
