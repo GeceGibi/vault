@@ -43,7 +43,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
           ..bind(_keep)
           .._parent = this;
 
-    keys.register(key);
+    keys.register(key).ignore();
     return key;
   }
 

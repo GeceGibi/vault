@@ -1,3 +1,9 @@
+## [0.2.10]
+### Fixed
+- Fixed race condition in `SubKeyManager._ensureInitialized()` that could cause concurrent calls to run multiple `_performLoad()` operations.
+- Added `_ensureInitialized()` call to `SubKeyManager.remove()` to prevent data loss.
+- Errors in `_performLoad()` now properly complete the completer with error, preventing infinite waits.
+
 ## [0.2.9]
 ### Fixed
 - `KeepType.fromByte` now returns `tNull` instead of `null` for unknown bytes, preventing encoding crashes.

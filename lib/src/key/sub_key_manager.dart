@@ -3,14 +3,32 @@ part of 'key.dart';
 /// Manages registration and persistence of sub-keys.
 ///
 /// Sub-keys are stored in a separate file (hashed) associated with the parent key.
-class SubKeyManager<T> extends Iterable<KeepKey<T>> {
+class SubKeyManager<T> {
   /// Creates a [SubKeyManager] for the given [parent] key.
   SubKeyManager(this._parent);
-
   final KeepKey<T> _parent;
 
   /// In-memory cache of registered sub-key names.
-  final _keysMemory = <String>[];
+  final _keys = <String>[];
+
+  /// Completer for initialization.
+  Completer<void>? _completer;
+
+  /// Ensures the sub-key manager is initialized.
+  Future<void> _ensureInitialized() async {
+    if (_completer != null) {
+      return _completer!.future;
+    }
+
+    _completer = Completer<void>();
+    try {
+      await _performLoad();
+      _completer!.complete();
+    } catch (e) {
+      _completer!.completeError(e);
+      rethrow;
+    }
+  }
 
   /// The file name for storing sub-key names, derived from the parent key's name.
   late final String _fileName = KeepCodec.generateHash('${_parent.name}\$sk');
@@ -21,30 +39,25 @@ class SubKeyManager<T> extends Iterable<KeepKey<T>> {
   /// Registers a sub-key name synchronously.
   ///
   /// Adds to memory immediately and schedules a background sync to merge with disk.
-  void register(KeepKey<T> key) {
-    if (_keysMemory.contains(key.name)) {
+  Future<void> register(KeepKey<T> key) async {
+    await _ensureInitialized();
+
+    if (_keys.contains(key.name)) {
       return;
     }
 
-    _keysMemory.add(key.name);
-    _scheduleSync();
+    _keys.add(key.name);
+    _performSave();
   }
 
-  Timer? _timer;
-
-  /// Schedules a debounced sync operation (150ms delay).
-  void _scheduleSync() {
-    _timer?.cancel();
-    _timer = Timer(const Duration(milliseconds: 150), _performSync);
-  }
-
-  Future<Set<String>> _performLoad() async {
+  /// Loads sub-key names from disk into memory.
+  Future<void> _performLoad() async {
     if (_file.existsSync()) {
       final bytes = await _file.readAsBytes();
       try {
         final decoded = KeepCodec.decodePayload(bytes);
         if (decoded?.value is List) {
-          return (decoded!.value as List).toSet().cast();
+          _keys.addAll((decoded!.value as List).cast());
         }
       } catch (error, stackTrace) {
         final exception = KeepException<T>(
@@ -57,60 +70,37 @@ class SubKeyManager<T> extends Iterable<KeepKey<T>> {
         throw exception;
       }
     }
-
-    return <String>{};
   }
 
-  Future<void> _performSave() async {
-    try {
-      // Atomic write: Write to temp file -> Rename
-      final tempFile = File(
-        '${_file.path}.${DateTime.now().microsecondsSinceEpoch}.tmp',
-      );
+  Timer? _timer;
+  void _performSave() {
+    _timer?.cancel();
+    _timer = Timer(const Duration(milliseconds: 150), () async {
+      try {
+        // Atomic write: Write to temp file -> Rename
+        final tempFile = File(
+          '${_file.path}.${DateTime.now().microsecondsSinceEpoch}.tmp',
+        );
 
-      // Use KeepCodec to encode (Shift bytes)
-      await tempFile.writeAsBytes(KeepCodec.encodePayload(_keysMemory, 0));
-      await tempFile.rename(_file.path);
-    } catch (error, stackTrace) {
-      final exception = KeepException<T>(
-        'Failed to save sub-key file',
-        error: error,
-        stackTrace: stackTrace,
-      );
+        // Use KeepCodec to encode (Shift bytes)
+        await tempFile.writeAsBytes(KeepCodec.encodePayload(_keys, 0));
+        await tempFile.rename(_file.path);
+      } catch (error, stackTrace) {
+        final exception = KeepException<T>(
+          'Failed to save sub-key file',
+          error: error,
+          stackTrace: stackTrace,
+        );
 
-      _parent._keep.onError?.call(exception);
-      throw exception;
-    }
-  }
-
-  /// Merges memory keys with disk keys and saves the result atomically if changed.
-  Future<void> _performSync() async {
-    final keysLoaded = await _performLoad();
-
-    // Merge: Disk + Memory (Union)
-    final keys = {...keysLoaded, ..._keysMemory};
-
-    // Update memory to reflect full state (Disk + Memory)
-    _keysMemory
-      ..clear()
-      ..addAll(keys);
-
-    // If disk already has all keys, no need to write
-    if (setEquals(keysLoaded, keys)) {
-      return;
-    }
-
-    await _performSave();
-  }
-
-  @override
-  Iterator<KeepKey<T>> get iterator {
-    return _keysMemory.map((name) => _parent(name.split(r'$').last)).iterator;
+        _parent._keep.onError?.call(exception);
+        throw exception;
+      }
+    });
   }
 
   /// Clears all registered sub-keys from memory and disk.
   Future<void> clear() async {
-    _keysMemory.clear();
+    _keys.clear();
 
     try {
       if (_file.existsSync()) {
@@ -130,12 +120,13 @@ class SubKeyManager<T> extends Iterable<KeepKey<T>> {
 
   /// Returns `true` if sub-keys exist in memory or on disk.
   bool get exists {
-    return _keysMemory.isNotEmpty || _file.existsSync();
+    return _keys.isNotEmpty || _file.existsSync();
   }
 
   /// Removes a specific sub-key from the registry.
   Future<void> remove(KeepKey<T> key) async {
-    _keysMemory.remove(key.name);
-    await _performSave();
+    await _ensureInitialized();
+    _keys.remove(key.name);
+    _performSave();
   }
 }
