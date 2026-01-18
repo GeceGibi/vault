@@ -1,3 +1,7 @@
+## [0.2.12]
+### Changed
+- Renamed `SubKeyManager.keys` getter to `toList()` method for better API clarity.
+
 ## [0.2.11]
 ### Changed
 - Added documentation to `SubKeyManager.keys` getter.

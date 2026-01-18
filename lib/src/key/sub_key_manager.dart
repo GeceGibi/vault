@@ -126,7 +126,7 @@ class SubKeyManager<T> {
   /// Returns all registered sub-keys as [KeepKey] instances.
   ///
   /// Re-registers each key via [KeepKey.call], but duplicates are ignored.
-  Future<List<KeepKey<T>>> get keys async {
+  Future<List<KeepKey<T>>> toList() async {
     await _ensureInitialized();
     return _keys.map(_parent.call).toList();
   }
