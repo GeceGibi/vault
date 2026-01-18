@@ -104,8 +104,14 @@ class SubKeyManager<T> extends ChangeNotifier {
 
     // 2. Scan Internal Memory
     for (final entry in internalStorage.memory.values) {
-      if (entry.storeName.startsWith(prefix)) {
-        foundNames.add(entry.name);
+      final storeName = entry.storeName;
+
+      if (storeName.startsWith(prefix)) {
+        // Only include direct children (no more '$' after prefix)
+        final remaining = storeName.substring(prefix.length);
+        if (!remaining.contains(r'$')) {
+          foundNames.add(entry.name);
+        }
       }
     }
 
@@ -114,6 +120,10 @@ class SubKeyManager<T> extends ChangeNotifier {
 
     for (final storeName in externalKeys) {
       if (!storeName.startsWith(prefix)) continue;
+
+      // Only include direct children (no more '$' after prefix)
+      final remaining = storeName.substring(prefix.length);
+      if (remaining.contains(r'$')) continue;
 
       try {
         final root = _parent._keep.root;
