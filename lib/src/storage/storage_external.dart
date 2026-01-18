@@ -73,8 +73,8 @@ class DefaultKeepExternalStorage extends KeepStorage {
 
         final entry = KeepCodec.decode(bytes);
 
-        // If decode failed (legacy format or corrupted), delete the file
-        if (entry == null && file.existsSync()) {
+        // If decode failed (legacy format or corrupted) but file had content, delete it
+        if (entry == null) {
           await file.delete();
         }
 
@@ -110,9 +110,9 @@ class DefaultKeepExternalStorage extends KeepStorage {
 
     final entry = KeepCodec.decode(bytes);
 
-    // If decode failed (legacy format or corrupted), delete the file
-    if (entry == null && file.existsSync()) {
-      file.delete().ignore();
+    // If decode failed (legacy format or corrupted) but file had content, delete it
+    if (entry == null) {
+      file.deleteSync();
     }
 
     return entry?.value as V?;

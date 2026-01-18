@@ -100,6 +100,30 @@ void main() {
 
     print('Sub-keys: ${storage.users}');
 
+    // Test external sub-keys
+    print('\n--- Testing External Sub-Keys ---');
+    final extParent = storage.extData; // External parent
+    await extParent('ext_sub1').write('ext_value1');
+    await extParent('ext_sub2').write('ext_value2');
+
+    final extSubs = await extParent.keys.toList();
+    print('External sub-keys: ${extSubs.map((k) => k.name).toList()}');
+
+    // Remove one
+    final toRemove = extSubs.first;
+    print('Removing external sub-key: ${toRemove.name}');
+    await toRemove.remove();
+
+    // Check file
+    final file = File('${dir.path}/keep/external/${toRemove.storeName}');
+    print('File exists after remove: ${file.existsSync()}');
+
+    // Check toList
+    final afterRemove = await extParent.keys.toList();
+    print(
+      'External sub-keys after removal: ${afterRemove.map((k) => k.name).toList()}',
+    );
+
     // Test dynamic keys
     print('\n--- Testing Dynamic Keys ---');
     final cities = storage.users; // Reusing for test
@@ -118,6 +142,23 @@ void main() {
     // toList should find: u1, u2, u3, 1, 2, 3 (from storage + registry)
     final allKeys = await cities.keys.toList();
     print('All keys found: ${allKeys.map((k) => k.name).toList()}');
+
+    // Test removal
+    print('\n--- Testing Sub-Key Removal ---');
+    final keyToRemove = allKeys.first;
+    print('Removing key: ${keyToRemove.name}');
+
+    await keyToRemove.remove();
+
+    // Check if file was deleted (for external keys)
+    if (keyToRemove.useExternal) {
+      final file = File('${dir.path}/keep/external/${keyToRemove.storeName}');
+      print('File exists after remove: ${file.existsSync()}');
+    }
+
+    // Check toList
+    final keysAfterRemove = await cities.keys.toList();
+    print('Keys after removal: ${keysAfterRemove.map((k) => k.name).toList()}');
 
     await Future<void>.delayed(const Duration(seconds: 1));
     print('\nData generated successfully! Check ${dir.path}');

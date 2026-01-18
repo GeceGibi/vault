@@ -33,9 +33,13 @@ class SubKeyManager<T> extends ChangeNotifier {
   ///
   /// Tracks the key in memory even if it hasn't been written to storage yet.
   Future<void> _register(KeepKey<T> key) async {
-    _instantiatedKeys.add(key.name);
-    _controller.add(.added);
-    notifyListeners();
+    // Only notify if this is a new key
+    final wasAdded = _instantiatedKeys.add(key.name);
+
+    if (wasAdded) {
+      _controller.add(.added);
+      notifyListeners();
+    }
   }
 
   /// Removes a specific sub-key from the registry.
