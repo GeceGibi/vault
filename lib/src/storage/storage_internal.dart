@@ -159,6 +159,23 @@ class KeepInternalStorage extends KeepStorage {
   }
 
   @override
+  Future<({String name, int flags, int version, KeepType type})?> readHeader(
+    String storeName,
+  ) async {
+    final entry = memory[storeName];
+    if (entry == null) {
+      return null;
+    }
+
+    return (
+      name: entry.name,
+      flags: entry.flags,
+      version: entry.version,
+      type: entry.type,
+    );
+  }
+
+  @override
   Future<List<String>> getKeys() async {
     return memory.keys.toList();
   }

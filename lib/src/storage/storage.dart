@@ -50,6 +50,11 @@ abstract class KeepStorage {
   /// efficient cleanup of temporary data without full content parsing.
   Future<void> clearRemovable();
 
+  /// Reads metadata for the given [storeName] without loading full content.
+  Future<({String name, int flags, int version, KeepType type})?> readHeader(
+    String storeName,
+  );
+
   /// Deletes all entries in this storage instance.
   FutureOr<void> clear();
 }

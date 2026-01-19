@@ -214,13 +214,18 @@ class KeepCodec {
     }
   }
 
-  /// Parses header metadata from unshifted content bytes.
+  /// Parses header metadata from unShifted content bytes.
   ///
   /// Returns a record with (storeName, name, flags) or null if parsing fails.
   /// This is useful for reading metadata without fully decoding the payload.
-  static ({String storeName, String name, int flags})? parseHeader(
-    Uint8List unShiftedData,
-  ) {
+  static ({
+    String storeName,
+    String name,
+    int flags,
+    int version,
+    KeepType type,
+  })?
+  parseHeader(Uint8List unShiftedData) {
     if (unShiftedData.length < 5) {
       // Min: StoreLen(1) + NameLen(1) + Flags(1) + Ver(1) + Type(1) = 5
       return null;
@@ -246,11 +251,19 @@ class KeepCodec {
       final name = utf8.decode(unShiftedData.sublist(offset, offset + nameLen));
       offset += nameLen;
 
-      // 3. Read Flags
-      if (offset >= unShiftedData.length) return null;
-      final flags = unShiftedData[offset];
+      // 3. Read Metadata
+      if (offset + 2 >= unShiftedData.length) return null;
+      final flags = unShiftedData[offset++];
+      final version = unShiftedData[offset++];
+      final typeByte = unShiftedData[offset++];
 
-      return (storeName: storeName, name: name, flags: flags);
+      return (
+        storeName: storeName,
+        name: name,
+        flags: flags,
+        version: version,
+        type: .fromByte(typeByte),
+      );
     } catch (_) {
       return null;
     }

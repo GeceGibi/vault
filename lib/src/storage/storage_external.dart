@@ -237,6 +237,54 @@ class DefaultKeepExternalStorage extends KeepStorage {
     }
   }
 
+  @override
+  Future<({String name, int flags, int version, KeepType type})?> readHeader(
+    String storeName,
+  ) async {
+    final file = File('${_root.path}/$storeName');
+    if (!file.existsSync()) {
+      return null;
+    }
+
+    final handle = await file.open();
+
+    try {
+      final fileLen = await file.length();
+      if (fileLen == 0) {
+        return null;
+      }
+
+      // Read header chunk (515 bytes should cover max header size)
+      var readSize = 515;
+      if (readSize > fileLen) readSize = fileLen;
+
+      await handle.setPosition(0);
+      final buffer = await handle.read(readSize);
+
+      if (buffer.isEmpty) {
+        return null;
+      }
+
+      final unShifted = KeepCodec.unShiftBytes(buffer);
+      final header = KeepCodec.parseHeader(unShifted);
+
+      if (header == null) {
+        return null;
+      }
+
+      return (
+        name: header.name,
+        flags: header.flags,
+        version: header.version,
+        type: header.type,
+      );
+    } catch (_) {
+      return null;
+    } finally {
+      await handle.close();
+    }
+  }
+
   /// Deletes all files in the external storage directory.
   @override
   Future<void> clear() async {

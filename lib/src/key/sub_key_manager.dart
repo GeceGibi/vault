@@ -108,8 +108,7 @@ class SubKeyManager<T> extends ChangeNotifier {
 
       if (storeName.startsWith(prefix)) {
         // Only include direct children (no more '$' after prefix)
-        final remaining = storeName.substring(prefix.length);
-        if (!remaining.contains(r'$')) {
+        if (!storeName.substring(prefix.length).contains(r'$')) {
           foundNames.add(entry.name);
         }
       }
@@ -119,39 +118,22 @@ class SubKeyManager<T> extends ChangeNotifier {
     final externalKeys = await _parent._keep.externalStorage.getKeys();
 
     for (final storeName in externalKeys) {
-      if (!storeName.startsWith(prefix)) continue;
+      if (!storeName.startsWith(prefix)) {
+        continue;
+      }
 
       // Only include direct children (no more '$' after prefix)
-      final remaining = storeName.substring(prefix.length);
-      if (remaining.contains(r'$')) continue;
+      if (storeName.substring(prefix.length).contains(r'$')) {
+        continue;
+      }
 
       try {
-        final root = _parent._keep.root;
-        final file = File('${root.path}/external/$storeName');
+        final header = await _parent._keep.externalStorage.readHeader(
+          storeName,
+        );
 
-        if (!file.existsSync()) continue;
-
-        final handle = await file.open();
-        try {
-          final fileLen = await file.length();
-          if (fileLen == 0) continue;
-
-          // Read header chunk (512 bytes should be enough)
-          var readSize = 512;
-          if (readSize > fileLen) readSize = fileLen;
-
-          await handle.setPosition(0);
-          final buffer = await handle.read(readSize);
-          final unShifted = KeepCodec.unShiftBytes(buffer);
-
-          // Parse header using helper
-          final header = KeepCodec.parseHeader(unShifted);
-
-          if (header != null) {
-            foundNames.add(header.name);
-          }
-        } finally {
-          await handle.close();
+        if (header != null) {
+          foundNames.add(header.name);
         }
       } catch (_) {
         // Ignore read errors for individual files

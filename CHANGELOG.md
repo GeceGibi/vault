@@ -1,3 +1,11 @@
+## [0.3.1]
+### Added
+- Added `KeepStorage.readHeader()` to allow reading metadata without loading full content.
+- `KeepCodec.parseHeader()` now returns `version` and `KeepType` enum.
+
+### Changed
+- Refactored `SubKeyManager` to be storage-agnostic by using `readHeader()` instead of direct file system access.
+
 ## [0.3.0]
 ### Changed
 - **Breaking:** `SubKeyManager.toList()` now works without requiring a meta-file.
