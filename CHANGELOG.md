@@ -1,3 +1,22 @@
+## [0.4.0]
+### Added
+- **Version-Based Migration System:** Introduced `KeepCodec` architecture for seamless storage format upgrades
+  - `KeepCodec.of(bytes)` automatically selects correct codec based on version byte
+  - `KeepCodecV1` implements current JSON-based format with optimized header structure
+  - Future-proof: Add new codecs without breaking existing data
+- New binary format with version-first layout: `[Version][Flags][Type][Lengths...][Data]`
+- `KeepCodecOf` wrapper for automatic codec selection and decoding
+- `KeepHeader` class for metadata extraction without full payload parsing
+
+### Changed
+- **Breaking:** Binary format updated - version byte moved to first position for instant detection
+- Batch encoding/decoding moved from codec interface to internal storage implementation
+- Simplified codec interface to single-entry operations only
+
+### Performance
+- Header parsing now O(1) instead of O(n) due to fixed-position metadata
+- Codec selection happens once at read time, not per-operation
+
 ## [0.3.0+1]
 ### Added
 - Added `KeepStorage.readHeader()` to allow reading metadata without loading full content.

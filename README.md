@@ -11,6 +11,7 @@ A type-safe, reactive local storage solution for Flutter with field-level encryp
 - **Reactive:** Stream-based updates and reactive widgets
 - **Hybrid Storage:** Small data in memory-cached binary file for speed, large data in separate files to avoid memory overhead
 - **Dynamic Sub-Keys:** Create nested keys without predefined schema
+- **Version-Based Migration:** Automatic codec selection for seamless data format upgrades
 - **Extensible:** Custom encryption, serialization, and storage adapters
 
 ---
@@ -328,6 +329,26 @@ Use for large data to avoid memory overhead:
 final bigData = Keep.map('large_dataset', useExternal: true);
 final logs = Keep.list('app_logs', useExternal: true);
 ```
+
+### Version-Based Migration
+
+Keep uses a version-based codec system for seamless storage format upgrades:
+
+- **Automatic Detection:** Reads version byte and selects correct codec
+- **Backward Compatible:** Old data remains readable 
+- **Zero Downtime:** Gradual migration as data is accessed
+- **Extensible:** Add new codecs without breaking existing data
+
+**Current Format (V1):** JSON-based with obfuscation  
+**Future Formats:** Binary serialization, compression, etc.
+
+```dart
+// Automatic codec selection
+final codec = KeepCodec.of(bytes);
+final entry = codec.decode();
+```
+
+See source code for codec implementation details.
 
 ---
 

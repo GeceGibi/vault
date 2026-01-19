@@ -6,6 +6,7 @@ import 'package:keep/src/keep.dart';
 import 'package:keep/src/storage/storage.dart';
 import 'package:keep/src/utils/utils.dart';
 
+part 'codec_of.dart';
 part 'header.dart';
 part 'v1.dart';
 
@@ -17,7 +18,11 @@ abstract class KeepCodec {
   /// The version number this codec handles.
   int get version;
 
-  static final v1 = KeepCodecV1._();
+  /// Creates a codec wrapper that auto-selects version from bytes.
+  static KeepCodecOf of(Uint8List bytes) => KeepCodecOf(bytes);
+  static final codecs = <KeepCodec>[
+    KeepCodecV1._(),
+  ];
 
   /// Flag bitmask for **Removable** keys (Bit 0).
   @internal
@@ -29,20 +34,20 @@ abstract class KeepCodec {
   @protected
   static const int flagSecure = 2;
 
-  Uint8List encodeAll(Map<String, KeepMemoryValue> entries);
-  Map<String, KeepMemoryValue> decodeAll(Uint8List bytes);
-
-  /// Encodes [data] to this codec's version format.
+  /// Encodes a single entry to this codec's version format.
   Uint8List? encode({
     required String storeName,
     required String keyName,
-    required Object value,
+    required dynamic value,
     required int flags,
   });
 
-  /// Decodes [data] from this codec's version format.
+  /// Decodes [bytes] from this codec's version format.
   KeepMemoryValue? decode(Uint8List bytes);
 
+  /// Parses header metadata from payload bytes without full decoding.
+  ///
+  /// Returns metadata including version, flags, type, and key names.
   KeepHeader? header(Uint8List bytes);
 
   /// Obfuscates bytes using a bitwise left rotation (ROL 1).
@@ -74,5 +79,31 @@ abstract class KeepCodec {
     }
 
     return hash.toUnsigned(64).toRadixString(36);
+  }
+
+  /// Version 1 codec instance (default).
+  static final v1 = KeepCodecV1._();
+
+  /// Selects the appropriate codec based on version number.
+  static KeepCodec forVersion(int version) {
+    return switch (version) {
+      1 => KeepCodecV1._(),
+      _ => v1, // Fallback to V1
+    };
+  }
+
+  /// Reads version from raw bytes and returns appropriate codec.
+  static KeepCodec fromBytes(Uint8List bytes) {
+    if (bytes.isEmpty) {
+      return v1;
+    }
+
+    // UnShift to get actual data
+    final data = unShiftBytes(Uint8List.fromList(bytes));
+    if (data.isEmpty) return v1;
+
+    // First byte is version
+    final version = data[0];
+    return forVersion(version);
   }
 }

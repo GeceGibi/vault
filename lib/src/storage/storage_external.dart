@@ -72,7 +72,8 @@ class DefaultKeepExternalStorage extends KeepStorage {
           return null;
         }
 
-        final entry = KeepCodec.v1.decode(bytes);
+        final codec = KeepCodec.of(bytes);
+        final entry = codec.decode();
 
         // If decode failed (legacy format or corrupted) but file had content, delete it
         if (entry == null) {
@@ -109,7 +110,8 @@ class DefaultKeepExternalStorage extends KeepStorage {
       return null;
     }
 
-    final entry = KeepCodec.v1.decode(bytes);
+    final codec = KeepCodec.of(bytes);
+    final entry = codec.decode();
 
     // If decode failed (legacy format or corrupted) but file had content, delete it
     if (entry == null) {
@@ -136,7 +138,7 @@ class DefaultKeepExternalStorage extends KeepStorage {
         if (key.removable) flags |= KeepCodec.flagRemovable;
         if (key is KeepKeySecure) flags |= KeepCodec.flagSecure;
 
-        final bytes = KeepCodec.v1.encode(
+        final bytes = KeepCodec.codecs.last.encode(
           storeName: key.storeName,
           keyName: key.name,
           flags: flags,
@@ -217,10 +219,8 @@ class DefaultKeepExternalStorage extends KeepStorage {
             final buffer = await handle.read(readSize);
 
             if (buffer.isNotEmpty) {
-              final unShifted = KeepCodec.unShiftBytes(buffer);
-
               // Parse header using helper
-              final header = KeepCodec.v1.header(unShifted);
+              final header = KeepCodec.of(buffer).header();
               if (header != null) {
                 flagsByte = header.flags;
               }
@@ -274,8 +274,7 @@ class DefaultKeepExternalStorage extends KeepStorage {
         return null;
       }
 
-      final unShifted = KeepCodec.unShiftBytes(buffer);
-      final header = KeepCodec.v1.header(unShifted);
+      final header = KeepCodec.of(buffer).header();
 
       if (header == null) {
         return null;

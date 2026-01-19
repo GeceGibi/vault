@@ -1,9 +1,18 @@
 part of 'codec.dart';
 
-/// Version 1 migration codec - the original Keep storage format.
+/// Version 1 codec - the baseline Keep storage format.
 ///
-/// This codec passes data through without modification, representing
-/// the baseline storage format.
+/// **Binary Format:**
+/// ```
+/// [Version(1)][Flags(1)][Type(1)][StoreNameLen(1)][NameLen(1)]
+/// [StoreNameBytes(N)][NameBytes(N)][JSON(N)]
+/// ```
+///
+/// **Features:**
+/// - JSON serialization for universal type support
+/// - Bitwise rotation obfuscation for basic security
+/// - Type metadata in header for efficient filtering
+/// - Forward-compatible version byte
 class KeepCodecV1 extends KeepCodec {
   KeepCodecV1._();
 
@@ -18,33 +27,29 @@ class KeepCodecV1 extends KeepCodec {
       // Un-shift first
       final data = KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
 
-      if (data.length < 5) {
-        // Min: StoreLen(1) + NameLen(1) + Flags(1) + Ver(1) + Type(1) = 5
-        return null;
-      }
+      // Min: Version(1) + Flags(1) + Type(1) + StoreNameLen(1) + NameLen(1) = 5
+      if (data.length < 5) return null;
 
       var offset = 0;
 
-      // 1. Read Store Name
+      // 1. Read header
+      final version = data[offset++];
+      final flags = data[offset++];
+      final type = data[offset++];
       final storeNameLen = data[offset++];
+      final nameLen = data[offset++];
+
+      // 2. Read Store Name
       if (offset + storeNameLen > data.length) return null;
       final storeName = utf8.decode(
         data.sublist(offset, offset + storeNameLen),
       );
       offset += storeNameLen;
 
-      // 2. Read Original Key Name
-      if (offset + 1 > data.length) return null;
-      final nameLen = data[offset++];
+      // 3. Read Key Name
       if (offset + nameLen > data.length) return null;
       final originalKey = utf8.decode(data.sublist(offset, offset + nameLen));
       offset += nameLen;
-
-      // 3. Read Metadata
-      if (offset + 3 > data.length) return null;
-      final flags = data[offset++];
-      final version = data[offset++];
-      final type = data[offset++];
 
       // 4. Read JSON Value
       final jsonBytes = data.sublist(offset);
@@ -72,49 +77,6 @@ class KeepCodecV1 extends KeepCodec {
   }
 
   @override
-  Map<String, KeepMemoryValue> decodeAll(Uint8List bytes) {
-    if (bytes.isEmpty) return {};
-
-    try {
-      final data = KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
-      final map = <String, KeepMemoryValue>{};
-      var offset = 0;
-
-      while (offset < data.length) {
-        // Read Payload Length
-        if (offset + 4 > data.length) break;
-        final payloadLen =
-            ((data[offset] << 24) |
-                    (data[offset + 1] << 16) |
-                    (data[offset + 2] << 8) |
-                    (data[offset + 3]))
-                .toUnsigned(32);
-        offset += 4;
-
-        if (offset + payloadLen > data.length) break;
-
-        // Read Payload
-        final payloadBytes = data.sublist(offset, offset + payloadLen);
-        final entry = decode(payloadBytes);
-
-        if (entry != null) {
-          map[entry.storeName] = entry;
-        }
-
-        offset += payloadLen;
-      }
-
-      return map;
-    } catch (error, stackTrace) {
-      throw KeepException<dynamic>(
-        'Failed to decode batch of entries',
-        stackTrace: stackTrace,
-        error: error,
-      );
-    }
-  }
-
-  @override
   Uint8List? encode({
     required String storeName,
     required String keyName,
@@ -137,25 +99,25 @@ class KeepCodecV1 extends KeepCodec {
       }
 
       // FORMAT:
-      // [StoreNameLen(1)]
-      // [StoreNameBytes(N)]
-      // [NameLen(1)]
-      // [NameBytes(N)]
-      // [Flags(1)]
       // [Version(1)]
+      // [Flags(1)]
       // [Type(1)]
+      // [StoreNameLen(1)]
+      // [NameLen(1)]
+      // [StoreNameBytes(N)]
+      // [NameBytes(N)]
       // [JSON(N)]
 
       final type = KeepType.inferType(value);
 
       buffer
-        ..addByte(storeNameBytes.length)
-        ..add(storeNameBytes)
-        ..addByte(keyNameBytes.length)
-        ..add(keyNameBytes)
-        ..addByte(flags)
         ..addByte(Keep.version)
+        ..addByte(flags)
         ..addByte(type.byte)
+        ..addByte(storeNameBytes.length)
+        ..addByte(keyNameBytes.length)
+        ..add(storeNameBytes)
+        ..add(keyNameBytes)
         ..add(valBytes);
 
       return KeepCodec.shiftBytes(buffer.toBytes());
@@ -169,77 +131,30 @@ class KeepCodecV1 extends KeepCodec {
   }
 
   @override
-  Uint8List encodeAll(Map<String, KeepMemoryValue> entries) {
-    try {
-      final buffer = BytesBuilder();
-
-      entries.forEach((storeName, entry) {
-        // Encode the payload with StoreName inside (Double shifting happens here)
-        final payloadBytes = encode(
-          storeName: storeName,
-          keyName: entry.name,
-          flags: entry.flags,
-          value: entry.value,
-        );
-
-        if (payloadBytes == null) {
-          return;
-        }
-
-        final payloadLen = payloadBytes.length;
-
-        // Internal Format: [PayloadLen(4)] [PayloadBytes(N)]
-        buffer
-          ..addByte((payloadLen >> 24) & 0xFF)
-          ..addByte((payloadLen >> 16) & 0xFF)
-          ..addByte((payloadLen >> 8) & 0xFF)
-          ..addByte(payloadLen & 0xFF)
-          ..add(payloadBytes);
-      });
-
-      // Shift the entire block at once
-      return KeepCodec.shiftBytes(buffer.toBytes());
-    } catch (error, stackTrace) {
-      throw KeepException<dynamic>(
-        'Failed to encode batch of entries',
-        stackTrace: stackTrace,
-        error: error,
-      );
-    }
-  }
-
-  @override
   KeepHeader? header(Uint8List bytes) {
-    if (bytes.length < 5) {
-      // Min: StoreLen(1) + NameLen(1) + Flags(1) + Ver(1) + Type(1) = 5
-      return null;
-    }
+    // Min: Version(1) + Flags(1) + Type(1) + StoreNameLen(1) + NameLen(1) = 5
+    if (bytes.length < 5) return null;
 
     try {
       var offset = 0;
 
-      // 1. Read StoreName
+      // 1. Read header (first 5 bytes)
+      final version = bytes[offset++];
+      final flags = bytes[offset++];
+      final typeByte = bytes[offset++];
       final storeNameLen = bytes[offset++];
-      if (offset + storeNameLen > bytes.length) return null;
+      final nameLen = bytes[offset++];
 
+      // 2. Read StoreName
+      if (offset + storeNameLen > bytes.length) return null;
       final storeName = utf8.decode(
         bytes.sublist(offset, offset + storeNameLen),
       );
       offset += storeNameLen;
 
-      // 2. Read Original Name
-      if (offset + 1 > bytes.length) return null;
-      final nameLen = bytes[offset++];
+      // 3. Read Name
       if (offset + nameLen > bytes.length) return null;
-
       final name = utf8.decode(bytes.sublist(offset, offset + nameLen));
-      offset += nameLen;
-
-      // 3. Read Metadata
-      if (offset + 2 >= bytes.length) return null;
-      final flags = bytes[offset++];
-      final version = bytes[offset++];
-      final typeByte = bytes[offset++];
 
       return KeepHeader(
         type: KeepType.fromByte(typeByte),

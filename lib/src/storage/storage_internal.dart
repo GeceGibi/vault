@@ -34,7 +34,7 @@ class KeepInternalStorage extends KeepStorage {
       }
 
       // Isolate logic for decoding
-      memory = await compute(KeepCodec.v1.decodeAll, bytes);
+      memory = await compute(_decodeAll, bytes);
     } catch (error, stackTrace) {
       final exception = KeepException<dynamic>(
         'Failed to initialize internal storage',
@@ -59,7 +59,7 @@ class KeepInternalStorage extends KeepStorage {
     _debounceTimer = Timer(const Duration(milliseconds: 150), () async {
       try {
         final currentMemory = Map<String, KeepMemoryValue>.from(memory);
-        final bytes = await compute(KeepCodec.v1.encodeAll, currentMemory);
+        final bytes = await compute(_encodeAll, currentMemory);
 
         final tmp = File('${_rootFile.path}.tmp');
         await tmp.writeAsBytes(bytes, flush: true);
@@ -178,5 +178,83 @@ class KeepInternalStorage extends KeepStorage {
   @override
   Future<List<String>> getKeys() async {
     return memory.keys.toList();
+  }
+
+  /// Encodes all entries into a single binary block for file storage.
+  static Uint8List _encodeAll(Map<String, KeepMemoryValue> entries) {
+    try {
+      final buffer = BytesBuilder();
+
+      entries.forEach((storeName, entry) {
+        final payloadBytes = KeepCodec.codecs.last.encode(
+          storeName: storeName,
+          keyName: entry.name,
+          flags: entry.flags,
+          value: entry.value,
+        );
+
+        if (payloadBytes == null) return;
+
+        final payloadLen = payloadBytes.length;
+
+        // Format: [PayloadLen(4)] [PayloadBytes(N)]
+        buffer
+          ..addByte((payloadLen >> 24) & 0xFF)
+          ..addByte((payloadLen >> 16) & 0xFF)
+          ..addByte((payloadLen >> 8) & 0xFF)
+          ..addByte(payloadLen & 0xFF)
+          ..add(payloadBytes);
+      });
+
+      return KeepCodec.shiftBytes(buffer.toBytes());
+    } catch (error, stackTrace) {
+      throw KeepException<dynamic>(
+        'Failed to encode batch',
+        stackTrace: stackTrace,
+        error: error,
+      );
+    }
+  }
+
+  /// Decodes a binary block into a map of entries.
+  static Map<String, KeepMemoryValue> _decodeAll(Uint8List bytes) {
+    if (bytes.isEmpty) return {};
+
+    try {
+      final data = KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
+      final map = <String, KeepMemoryValue>{};
+      var offset = 0;
+
+      while (offset < data.length) {
+        if (offset + 4 > data.length) break;
+
+        final payloadLen =
+            ((data[offset] << 24) |
+                    (data[offset + 1] << 16) |
+                    (data[offset + 2] << 8) |
+                    (data[offset + 3]))
+                .toUnsigned(32);
+        offset += 4;
+
+        if (offset + payloadLen > data.length) break;
+
+        final payloadBytes = data.sublist(offset, offset + payloadLen);
+        final entry = KeepCodec.of(payloadBytes).decode();
+
+        if (entry != null) {
+          map[entry.storeName] = entry;
+        }
+
+        offset += payloadLen;
+      }
+
+      return map;
+    } catch (error, stackTrace) {
+      throw KeepException<dynamic>(
+        'Failed to decode batch',
+        stackTrace: stackTrace,
+        error: error,
+      );
+    }
   }
 }

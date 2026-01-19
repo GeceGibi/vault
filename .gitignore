@@ -30,3 +30,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 /build/
 /coverage/
+
+# Test data
+test/keep_data_inspect/
+test/keep_stress/
