@@ -5,7 +5,10 @@ part of 'utils.dart';
 @internal
 Future<void> atomicWrite(File file, Uint8List bytes) async {
   final targetPath = file.path;
-  final tmpFile = File('$targetPath.tmp');
+  final now = DateTime.now();
+  final rnd = Random();
+  final taskId = '${now.microsecondsSinceEpoch}_${rnd.nextInt(10000)}';
+  final tmpFile = File('$targetPath.$taskId.tmp');
 
   try {
     if (!file.parent.existsSync()) {

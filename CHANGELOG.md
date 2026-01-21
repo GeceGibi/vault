@@ -1,3 +1,7 @@
+## 0.5.3
+- Fixed race condition in atomic writes.
+- Fixed race condition in initialization.
+
 ## 0.5.2
 
 - Refactored file write operations with a robust `atomicWrite` utility.

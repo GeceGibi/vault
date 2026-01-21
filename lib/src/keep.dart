@@ -513,12 +513,20 @@ class Keep {
     );
   }
 
+  var _isInitializing = false;
+
   /// Initializes the keep by creating directories and starting storage adapters.
   ///
   /// [path] specifies the base directory. Defaults to app support directory.
   /// Folder name is automatically derived from the class name hash.
   @mustCallSuper
   Future<void> init({String? path}) async {
+    if (_initCompleter.isCompleted || _isInitializing) {
+      return _initCompleter.future;
+    }
+
+    _isInitializing = true;
+
     _path = path ?? (await getApplicationSupportDirectory()).path;
 
     await encrypter.init();
