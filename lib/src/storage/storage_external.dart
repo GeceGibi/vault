@@ -8,26 +8,9 @@ class DefaultKeepExternalStorage extends KeepStorage {
   late Directory _root;
   late Keep _keep;
 
-  final Map<String, Future<void>> _queue = {};
+  final _writer = KeepWriteQueue();
 
-  /// Executes a file [action] by queuing it to prevent concurrent write/read conflicts
-  /// on the same [key].
-  Future<T> _withQueue<T>(String key, Future<T> Function() action) async {
-    final previous = _queue[key];
-    final completer = Completer<void>();
-    _queue[key] = completer.future;
-
-    try {
-      await previous;
-      return await action();
-    } finally {
-      completer.complete();
-
-      if (_queue[key] == completer.future) {
-        _queue.remove(key)?.ignore();
-      }
-    }
-  }
+  final Map<String, KeepKeyHeader> _memory = {};
 
   /// Initializes the external storage by ensuring the 'external' directory exists.
   @override
@@ -38,6 +21,16 @@ class DefaultKeepExternalStorage extends KeepStorage {
 
       if (!_root.existsSync()) {
         await _root.create(recursive: true);
+      } else {
+        final names = await getKeys();
+
+        for (final name in names) {
+          final keepHeader = await header(name);
+
+          if (keepHeader != null) {
+            _memory[name] = keepHeader;
+          }
+        }
       }
     } catch (error, stackTrace) {
       final exception = KeepException<dynamic>(
@@ -60,30 +53,29 @@ class DefaultKeepExternalStorage extends KeepStorage {
   @override
   Future<V?> read<V>(KeepKey<dynamic> key) async {
     try {
-      return _withQueue(key.storeName, () async {
-        final file = getFile(key);
+      return _writer.run<V?>(
+        id: key.storeName,
+        action: () async {
+          final file = getFile(key);
 
-        if (!file.existsSync()) {
-          return null;
-        }
+          if (!file.existsSync()) {
+            return null;
+          }
 
-        final bytes = await file.readAsBytes();
-        if (bytes.isEmpty) {
-          return null;
-        }
+          final bytes = await file.readAsBytes();
+          final codec = KeepCodec.of(bytes);
+          final entry = codec.decode();
 
-        final codec = KeepCodec.of(bytes);
-        final entry = codec.decode();
+          if (entry == null) {
+            await file.delete();
+            _memory.remove(key.storeName);
+          }
 
-        // If decode failed (legacy format or corrupted) but file had content, delete it
-        if (entry == null) {
-          await file.delete();
-        }
-
-        return entry?.value as V?;
-      });
-    } on KeepException<dynamic> catch (e) {
-      _keep.onError?.call(e);
+          return entry?.value as V?;
+        },
+      );
+    } on KeepException<dynamic> catch (error) {
+      _keep.onError?.call(error);
       rethrow;
     } catch (error, stackTrace) {
       final exception = key.toException(
@@ -101,21 +93,18 @@ class DefaultKeepExternalStorage extends KeepStorage {
   @override
   V? readSync<V>(KeepKey<dynamic> key) {
     final file = getFile(key);
+
     if (!file.existsSync()) {
       return null;
     }
 
     final bytes = file.readAsBytesSync();
-    if (bytes.isEmpty) {
-      return null;
-    }
-
     final codec = KeepCodec.of(bytes);
     final entry = codec.decode();
 
-    // If decode failed (legacy format or corrupted) but file had content, delete it
     if (entry == null) {
       file.deleteSync();
+      _memory.remove(key.storeName);
     }
 
     return entry?.value as V?;
@@ -126,32 +115,55 @@ class DefaultKeepExternalStorage extends KeepStorage {
   Future<void> write(KeepKey<dynamic> key, Object? value) async {
     try {
       if (value == null) {
-        await getFile(key).delete();
+        await _writer.run(
+          id: key.storeName,
+          action: () async {
+            final file = getFile(key);
+
+            if (file.existsSync()) {
+              await file.delete();
+            }
+
+            _memory.remove(key.storeName);
+          },
+        );
         return;
       }
 
-      await _withQueue(key.storeName, () async {
-        final file = getFile(key);
-        final tmp = File('${file.path}.tmp');
+      await _writer.run(
+        id: key.storeName,
+        action: () async {
+          final file = getFile(key);
+          final tmp = File('${file.path}.tmp');
 
-        var flags = 0;
-        if (key.removable) flags |= KeepCodec.flagRemovable;
-        if (key is KeepKeySecure) flags |= KeepCodec.flagSecure;
+          var flags = 0;
+          if (key.removable) flags |= KeepCodec.flagRemovable;
+          if (key is KeepKeySecure) flags |= KeepCodec.flagSecure;
 
-        final bytes = KeepCodec.current.encode(
-          storeName: key.storeName,
-          keyName: key.name,
-          flags: flags,
-          value: value,
-        );
+          final bytes = KeepCodec.current.encode(
+            storeName: key.storeName,
+            keyName: key.name,
+            flags: flags,
+            value: value,
+          );
 
-        if (bytes == null) {
-          return;
-        }
+          if (bytes == null) {
+            return;
+          }
 
-        await tmp.writeAsBytes(bytes, flush: true);
-        await tmp.rename(file.path);
-      });
+          await tmp.create(recursive: true);
+          await tmp.writeAsBytes(bytes, flush: true);
+          await tmp.rename(file.path);
+
+          _memory[key.storeName] = KeepKeyHeader(
+            storeName: key.storeName,
+            name: key.name,
+            flags: flags,
+            type: KeepType.inferType(value),
+            version: KeepCodec.current.version,
+          );
+        },
+      );
     } on KeepException<dynamic> catch (e) {
       _keep.onError?.call(e);
       rethrow;
@@ -169,14 +181,14 @@ class DefaultKeepExternalStorage extends KeepStorage {
 
   @override
   bool existsSync(KeepKey<dynamic> key) {
-    return getFile(key).existsSync();
+    return _memory.containsKey(key.storeName);
   }
 
   /// Asynchronously checks if the file for [key] exists on disk.
   @override
   Future<bool> exists(KeepKey<dynamic> key) async {
     try {
-      return getFile(key).existsSync();
+      return _memory.containsKey(key.storeName);
     } on KeepException<dynamic> catch (e) {
       _keep.onError?.call(e);
       rethrow;
@@ -194,60 +206,44 @@ class DefaultKeepExternalStorage extends KeepStorage {
 
   @override
   Future<void> clearRemovable() async {
-    // Manual flag check for performance (read only required bytes)
-    final names = await getKeys();
+    final toRemove = _memory.entries
+        .where((e) => e.value.isRemovable)
+        .map((e) => e.key)
+        .toList();
 
-    for (final name in names) {
-      final file = File('${_root.path}/$name');
+    for (final name in toRemove) {
+      await _writer.run(
+        id: name,
+        action: () async {
+          try {
+            final file = File('${_root.path}/$name');
 
-      try {
-        if (!file.existsSync()) continue;
-
-        final handle = await file.open();
-
-        var flagsByte = -1;
-
-        try {
-          final fileLen = await file.length();
-
-          if (fileLen > 0) {
-            // Read header chunk (515 bytes should cover max header size)
-            var readSize = 515;
-            if (readSize > fileLen) readSize = fileLen;
-
-            await handle.setPosition(0);
-            final buffer = await handle.read(readSize);
-
-            if (buffer.isNotEmpty) {
-              // Parse header using helper
-              final header = KeepCodec.of(buffer).header();
-              if (header != null) {
-                flagsByte = header.flags;
-              }
+            if (file.existsSync()) {
+              await file.delete();
             }
+
+            _memory.remove(name);
+          } catch (error, stackTrace) {
+            final exception = KeepException<dynamic>(
+              'Failed to clear removable file $name',
+              stackTrace: stackTrace,
+              error: error,
+            );
+
+            _keep.onError?.call(exception);
+            throw exception;
           }
-        } finally {
-          await handle.close();
-        }
-
-        if (flagsByte != -1 && (flagsByte & KeepCodec.flagRemovable) != 0) {
-          await file.delete();
-        }
-      } catch (error, stackTrace) {
-        final exception = KeepException<dynamic>(
-          'Failed to clear removable file $file',
-          stackTrace: stackTrace,
-          error: error,
-        );
-
-        _keep.onError?.call(exception);
-        throw exception;
-      }
+        },
+      );
     }
   }
 
   @override
-  Future<KeepHeader?> header(String storeName) async {
+  Future<KeepKeyHeader?> header(String storeName) async {
+    if (_memory.containsKey(storeName)) {
+      return _memory[storeName];
+    }
+
     final file = File('${_root.path}/$storeName');
     if (!file.existsSync()) {
       return null;
@@ -274,8 +270,8 @@ class DefaultKeepExternalStorage extends KeepStorage {
 
       final header = KeepCodec.of(buffer).header();
 
-      if (header == null) {
-        return null;
+      if (header != null) {
+        _memory[storeName] = header;
       }
 
       return header;
@@ -290,22 +286,31 @@ class DefaultKeepExternalStorage extends KeepStorage {
   @override
   Future<void> clear() async {
     final names = await getKeys();
-    for (final name in names) {
-      final file = File('${_root.path}/$name');
-      try {
-        if (await file.exists()) {
-          await file.delete();
-        }
-      } catch (error, stackTrace) {
-        final exception = KeepException<dynamic>(
-          'Failed to delete $file',
-          stackTrace: stackTrace,
-          error: error,
-        );
 
-        _keep.onError?.call(exception);
-        throw exception;
-      }
+    for (final name in names) {
+      await _writer.run(
+        id: name,
+        action: () async {
+          final file = File('${_root.path}/$name');
+
+          try {
+            if (await file.exists()) {
+              await file.delete();
+            }
+
+            _memory.remove(name);
+          } catch (error, stackTrace) {
+            final exception = KeepException<dynamic>(
+              'Failed to delete $file',
+              stackTrace: stackTrace,
+              error: error,
+            );
+
+            _keep.onError?.call(exception);
+            throw exception;
+          }
+        },
+      );
     }
   }
 
@@ -313,15 +318,21 @@ class DefaultKeepExternalStorage extends KeepStorage {
   @override
   Future<void> remove(KeepKey<dynamic> key) async {
     try {
-      final file = getFile(key);
+      await _writer.run(
+        id: key.storeName,
+        action: () async {
+          final file = getFile(key);
 
-      if (!existsSync(key)) {
-        return;
-      }
+          if (!file.existsSync()) {
+            return;
+          }
 
-      await file.delete();
-    } on KeepException<dynamic> catch (e) {
-      _keep.onError?.call(e);
+          await file.delete();
+          _memory.remove(key.storeName);
+        },
+      );
+    } on KeepException<dynamic> catch (error) {
+      _keep.onError?.call(error);
       rethrow;
     } catch (error, stackTrace) {
       final exception = key.toException(
@@ -339,11 +350,17 @@ class DefaultKeepExternalStorage extends KeepStorage {
   @override
   Future<void> removeKey(String storeName) async {
     try {
-      final file = File('${_root.path}/$storeName');
+      await _writer.run(
+        id: storeName,
+        action: () async {
+          final file = File('${_root.path}/$storeName');
 
-      if (file.existsSync()) {
-        await file.delete();
-      }
+          if (file.existsSync()) {
+            await file.delete();
+            _memory.remove(storeName);
+          }
+        },
+      );
     } catch (error, stackTrace) {
       final exception = KeepException<dynamic>(
         'Failed to remove file $storeName',
@@ -363,9 +380,17 @@ class DefaultKeepExternalStorage extends KeepStorage {
       return [];
     }
 
-    final list = await _root.list().where((e) => e is File).toList();
+    final list = await _root
+        .list()
+        .where((e) => e is File && !e.path.endsWith('.tmp'))
+        .toList();
 
     // Return base names (filenames = storeNames)
     return list.map((e) => e.uri.pathSegments.last).toList();
+  }
+
+  @override
+  Future<void> dispose() async {
+    _writer.dispose();
   }
 }

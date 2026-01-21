@@ -20,16 +20,11 @@ class KeepCodecV1 extends KeepCodec {
   int get version => 1;
 
   @override
-  KeepInternalEntry? decode(Uint8List bytes) {
-    if (bytes.isEmpty) return null;
+  KeepKeyValue? decode(Uint8List data) {
+    // Min: Version(1) + Flags(1) + Type(1) + StoreNameLen(1) + NameLen(1) = 5
+    if (data.length < 5) return null;
 
     try {
-      // Un-shift first
-      final data = KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
-
-      // Min: Version(1) + Flags(1) + Type(1) + StoreNameLen(1) + NameLen(1) = 5
-      if (data.length < 5) return null;
-
       var offset = 0;
 
       // 1. Read header
@@ -60,7 +55,7 @@ class KeepCodecV1 extends KeepCodec {
         return null;
       }
 
-      return KeepInternalEntry(
+      return KeepKeyValue(
         value: value,
         flags: flags,
         name: originalKey,
@@ -109,7 +104,7 @@ class KeepCodecV1 extends KeepCodec {
       final type = KeepType.inferType(value);
 
       buffer
-        ..addByte(Keep.version)
+        ..addByte(KeepCodec.current.version)
         ..addByte(flags)
         ..addByte(type.byte)
         ..addByte(storeNameBytes.length)
@@ -129,32 +124,32 @@ class KeepCodecV1 extends KeepCodec {
   }
 
   @override
-  KeepHeader? header(Uint8List bytes) {
+  KeepKeyHeader? header(Uint8List data) {
     // Min: Version(1) + Flags(1) + Type(1) + StoreNameLen(1) + NameLen(1) = 5
-    if (bytes.length < 5) return null;
+    if (data.length < 5) return null;
 
     try {
       var offset = 0;
 
       // 1. Read header (first 5 bytes)
-      final version = bytes[offset++];
-      final flags = bytes[offset++];
-      final typeByte = bytes[offset++];
-      final storeNameLen = bytes[offset++];
-      final nameLen = bytes[offset++];
+      final version = data[offset++];
+      final flags = data[offset++];
+      final typeByte = data[offset++];
+      final storeNameLen = data[offset++];
+      final nameLen = data[offset++];
 
       // 2. Read StoreName
-      if (offset + storeNameLen > bytes.length) return null;
+      if (offset + storeNameLen > data.length) return null;
       final storeName = utf8.decode(
-        bytes.sublist(offset, offset + storeNameLen),
+        data.sublist(offset, offset + storeNameLen),
       );
       offset += storeNameLen;
 
       // 3. Read Name
-      if (offset + nameLen > bytes.length) return null;
-      final name = utf8.decode(bytes.sublist(offset, offset + nameLen));
+      if (offset + nameLen > data.length) return null;
+      final name = utf8.decode(data.sublist(offset, offset + nameLen));
 
-      return KeepHeader(
+      return KeepKeyHeader(
         type: KeepType.fromByte(typeByte),
         storeName: storeName,
         version: version,

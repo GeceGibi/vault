@@ -26,6 +26,24 @@ class TestKeep extends Keep {
     'ext_secure',
     useExternal: true,
   );
+
+  final extRemovable1 = Keep.kString(
+    'ext_removable_1',
+    useExternal: true,
+    removable: true,
+  );
+
+  final extRemovable2 = Keep.kString(
+    'ext_removable_2',
+    useExternal: true,
+    removable: true,
+  );
+
+  final extNonRemovable = Keep.kString(
+    'ext_non_removable',
+    useExternal: true,
+    removable: false,
+  );
 }
 
 void main() {
@@ -39,6 +57,8 @@ void main() {
   });
 
   tearDown(() async {
+    // Wait for debounced writes to complete
+    await Future<void>.delayed(const Duration(milliseconds: 200));
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -100,7 +120,7 @@ void main() {
 
       // Verify the file exists on disk (it is now stored with a hashed name)
       final file = File(
-        '${tempDir.path}/keep/external/${storage.extData.storeName}',
+        '${storage.root.path}/external/${storage.extData.storeName}',
       );
       expect(file.existsSync(), true);
     });
@@ -117,7 +137,7 @@ void main() {
 
       // Dosya içeriği şifreli olmalı
       final file = File(
-        '${tempDir.path}/keep/external/${storage.extSecure.storeName}',
+        '${storage.root.path}/external/${storage.extSecure.storeName}',
       ); // Hashed name
       final bytes = file.readAsBytesSync();
       // Content should not be plain text (both encrypted and byte-shifted)
@@ -154,6 +174,29 @@ void main() {
 
       expect(storage.counter.readSync(), null);
       expect(storage.extData.readSync(), null);
+    });
+
+    test('ClearRemovable external storage', () async {
+      // Write values
+      await storage.extRemovable1.write('value1');
+      await storage.extRemovable2.write('value2');
+      await storage.extNonRemovable.write('value3');
+
+      // Verify all exist
+      expect(await storage.extRemovable1.exists, true);
+      expect(await storage.extRemovable2.exists, true);
+      expect(await storage.extNonRemovable.exists, true);
+
+      // Clear removable
+      await storage.clearRemovable();
+
+      // Removable keys should be gone
+      expect(await storage.extRemovable1.exists, false);
+      expect(await storage.extRemovable2.exists, false);
+
+      // Non-removable should remain
+      expect(await storage.extNonRemovable.exists, true);
+      expect(await storage.extNonRemovable.read(), 'value3');
     });
   });
 }

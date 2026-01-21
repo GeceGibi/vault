@@ -8,9 +8,9 @@ class KeepInternalStorage extends KeepStorage {
   late final Keep _keep;
 
   /// In-memory cache of entries.
-  Map<String, KeepInternalEntry> memory = {};
+  Map<String, KeepKeyValue> memory = {};
 
-  Timer? _debounceTimer;
+  final _writer = KeepWriteQueue();
 
   /// Initializes the internal storage by loading the 'main.keep' file.
   @override
@@ -27,11 +27,6 @@ class KeepInternalStorage extends KeepStorage {
       }
 
       final bytes = await _rootFile.readAsBytes();
-
-      if (bytes.isEmpty) {
-        memory = {};
-        return;
-      }
 
       // Isolate logic for decoding
       memory = await compute(_decodeAll, bytes);
@@ -55,27 +50,19 @@ class KeepInternalStorage extends KeepStorage {
 
   /// Saves the current memory state to disk.
   Future<void> saveMemory() async {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 150), () async {
-      try {
-        final currentMemory = Map<String, KeepInternalEntry>.from(memory);
+    _writer.run(
+      id: 'main',
+      action: () async {
+        final currentMemory = Map<String, KeepKeyValue>.from(memory);
         final bytes = await compute(_encodeAll, currentMemory);
 
         final tmp = File('${_rootFile.path}.tmp');
+        await tmp.create(recursive: true);
         await tmp.writeAsBytes(bytes, flush: true);
         await tmp.rename(_rootFile.path);
-      } catch (error, stackTrace) {
-        final exception = KeepException<dynamic>(
-          'Failed to save internal storage',
-          stackTrace: stackTrace,
-          error: error,
-        );
-
-        /// Call onError callback if provided
-        _keep.onError?.call(exception);
-        throw exception;
-      }
-    });
+      },
+      onError: (error) => _keep.onError?.call(error),
+    );
   }
 
   /// Asynchronously reads a value from the memory cache.
@@ -95,11 +82,13 @@ class KeepInternalStorage extends KeepStorage {
       flags |= KeepCodec.flagSecure;
     }
 
-    memory[key.storeName] = KeepInternalEntry(
+    memory[key.storeName] = KeepKeyValue(
       value: value,
-      flags: flags,
       name: key.name,
+      flags: flags,
       storeName: key.storeName,
+      version: KeepCodec.current.version,
+      type: KeepType.inferType(value),
     );
     unawaited(saveMemory());
   }
@@ -159,19 +148,13 @@ class KeepInternalStorage extends KeepStorage {
   }
 
   @override
-  Future<KeepHeader?> header(String storeName) async {
+  Future<KeepKeyHeader?> header(String storeName) async {
     final entry = memory[storeName];
     if (entry == null) {
       return null;
     }
 
-    return KeepHeader(
-      name: entry.name,
-      flags: entry.flags,
-      version: entry.version,
-      type: entry.type,
-      storeName: entry.storeName,
-    );
+    return entry;
   }
 
   @override
@@ -180,7 +163,7 @@ class KeepInternalStorage extends KeepStorage {
   }
 
   /// Encodes all entries into a single binary block for file storage.
-  static Uint8List _encodeAll(Map<String, KeepInternalEntry> entries) {
+  static Uint8List _encodeAll(Map<String, KeepKeyValue> entries) {
     try {
       final buffer = BytesBuilder();
 
@@ -216,12 +199,14 @@ class KeepInternalStorage extends KeepStorage {
   }
 
   /// Decodes a binary block into a map of entries.
-  static Map<String, KeepInternalEntry> _decodeAll(Uint8List bytes) {
-    if (bytes.isEmpty) return {};
+  static Map<String, KeepKeyValue> _decodeAll(Uint8List bytes) {
+    if (bytes.isEmpty) {
+      return {};
+    }
 
     try {
       final data = KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
-      final map = <String, KeepInternalEntry>{};
+      final map = <String, KeepKeyValue>{};
       var offset = 0;
 
       while (offset < data.length) {
@@ -255,5 +240,10 @@ class KeepInternalStorage extends KeepStorage {
         error: error,
       );
     }
+  }
+
+  @override
+  Future<void> dispose() async {
+    _writer.dispose();
   }
 }

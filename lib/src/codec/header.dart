@@ -1,31 +1,61 @@
 part of 'codec.dart';
 
-/// Metadata extracted from a Keep payload header without full decoding.
+/// Represents a value stored in the keep along with its associated metadata flags.
 ///
-/// This lightweight structure contains essential information about a stored
-/// value, allowing for efficient filtering and introspection.
-class KeepHeader {
-  /// Creates a header with the given metadata.
-  KeepHeader({
-    required this.storeName,
-    required this.name,
+/// This class serves as the fundamental data container for storing and retrieving
+/// information within the Keep system. It encapsulates both the raw data payload
+/// and bitwise flags that define the data's behavior (e.g., persistence strategies).
+///
+/// Instances of [KeepInternalValue] are immutable and are used during:
+/// - In-memory storage (Internal Keep)
+/// - Binary serialization (External Keep)
+@immutable
+class KeepKeyHeader {
+  /// Creates a new keep entry with the given [value], [flags], optional [version] and [type].
+  KeepKeyHeader({
     required this.flags,
+    required this.name,
+    required this.storeName,
     required this.version,
-    required this.type,
+    this.type = .tNull,
   });
-
-  /// The hashed storage key.
-  final String storeName;
 
   /// The original key name.
   final String name;
 
-  /// Metadata flags (removable, secure, etc.).
+  /// The hashed key name (StoreName) used for file system and map keys.
+  final String storeName;
+
+  /// Bitwise metadata flags.
   final int flags;
 
-  /// The codec version used to encode this value.
+  /// The version of the data package format.
   final int version;
 
-  /// The data type of the stored value.
+  /// The type of the stored value.
   final KeepType type;
+
+  /// Checks if the entry is marked as **Removable**.
+  bool get isRemovable => (flags & KeepCodec.flagRemovable) != 0;
+
+  /// Checks if the entry is marked as **Secure**.
+  bool get isSecure => (flags & KeepCodec.flagSecure) != 0;
+
+  @override
+  String toString() =>
+      'KeepInternalValue(name: $name, flags: $flags, type: $type, isRemovable: $isRemovable, isSecure: $isSecure)';
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is KeepKeyHeader &&
+        other.name == name &&
+        other.storeName == storeName &&
+        other.flags == flags &&
+        other.version == version &&
+        other.type == type;
+  }
+
+  @override
+  int get hashCode => Object.hash(name, storeName, flags, version, type);
 }

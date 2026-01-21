@@ -50,10 +50,11 @@ class KeepKeySecure<T> extends KeepKey<T> {
   final Object? Function(T value) toStorage;
 
   T? _cachedValue;
+  bool _hasCachedValue = false;
 
   @override
   T? readSync() {
-    if (_cachedValue != null) {
+    if (_hasCachedValue) {
       return _cachedValue;
     }
 
@@ -70,7 +71,8 @@ class KeepKeySecure<T> extends KeepKey<T> {
       final decrypted = _keep.encrypter.decryptSync(encrypted);
       final decoded = jsonDecode(decrypted);
 
-      return _cachedValue ??= fromStorage(decoded);
+      _hasCachedValue = true;
+      return _cachedValue = fromStorage(decoded);
     } on KeepException<dynamic> {
       unawaited(remove());
       return null;
@@ -92,7 +94,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
   Future<T?> read() async {
     await _keep.ensureInitialized;
 
-    if (_cachedValue != null) {
+    if (_hasCachedValue) {
       return _cachedValue;
     }
 
@@ -109,7 +111,8 @@ class KeepKeySecure<T> extends KeepKey<T> {
       final decrypted = await _keep.encrypter.decrypt(encrypted);
       final decoded = await compute(jsonDecode, decrypted);
 
-      return _cachedValue ??= fromStorage(decoded);
+      _hasCachedValue = true;
+      return _cachedValue = fromStorage(decoded);
     } on KeepException<dynamic> {
       unawaited(remove());
       return null;
@@ -133,6 +136,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
 
     // Invalidate cached value
     _cachedValue = null;
+    _hasCachedValue = false;
 
     if (value == null) {
       await remove();
@@ -143,8 +147,6 @@ class KeepKeySecure<T> extends KeepKey<T> {
         final encrypted = await _keep.encrypter.encrypt(
           await compute(jsonEncode, payload),
         );
-
-        _keep.onChangeController.add(this);
 
         if (useExternal) {
           await externalStorage.write(this, encrypted);

@@ -2,13 +2,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
-import 'package:keep/src/keep.dart';
-import 'package:keep/src/storage/storage.dart';
 import 'package:keep/src/utils/utils.dart';
 
 part 'codec_of.dart';
 part 'header.dart';
-part 'v1.dart';
+part 'value.dart';
+part 'codec_v1.dart';
 
 /// Abstract base class for version-based data migration.
 ///
@@ -40,12 +39,12 @@ abstract class KeepCodec {
   });
 
   /// Decodes [bytes] from this codec's version format.
-  KeepInternalEntry? decode(Uint8List bytes);
+  KeepKeyValue? decode(Uint8List bytes);
 
   /// Parses header metadata from payload bytes without full decoding.
   ///
   /// Returns metadata including version, flags, type, and key names.
-  KeepHeader? header(Uint8List bytes);
+  KeepKeyHeader? header(Uint8List bytes);
 
   /// Obfuscates bytes using a bitwise left rotation (ROL 1).
   static Uint8List shiftBytes(Uint8List bytes) {
@@ -53,7 +52,7 @@ abstract class KeepCodec {
       final b = bytes[i];
       bytes[i] = ((b << 1) | (b >> 7)) & 0xFF;
     }
-    return Uint8List.fromList(bytes);
+    return bytes;
   }
 
   /// Reverses the bitwise rotation obfuscation (ROR 1).

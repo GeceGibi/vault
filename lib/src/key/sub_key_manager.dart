@@ -44,9 +44,12 @@ class SubKeyManager<T> extends ChangeNotifier {
 
   /// Removes a specific sub-key from the registry.
   Future<void> _unregister(KeepKey<T> key) async {
-    _instantiatedKeys.remove(key.name);
-    _controller.add(.removed);
-    notifyListeners();
+    final wasRemoved = _instantiatedKeys.remove(key.name);
+
+    if (wasRemoved) {
+      _controller.add(.removed);
+      notifyListeners();
+    }
   }
 
   /// Clears all sub-keys associated with the parent key from memory and disk.
@@ -65,11 +68,11 @@ class SubKeyManager<T> extends ChangeNotifier {
       );
 
       // 2. Clear External Storage
-      final externalKeys = await _parent._keep.externalStorage.getKeys();
+      final externalKeys = await _parent.externalStorage.getKeys();
       await Future.wait(
         externalKeys
             .where((k) => k.startsWith(prefix))
-            .map(_parent._keep.externalStorage.removeKey),
+            .map(_parent.externalStorage.removeKey),
       );
 
       // 3. Clear in-memory registry
@@ -115,7 +118,7 @@ class SubKeyManager<T> extends ChangeNotifier {
     }
 
     // 2. Scan External Storage
-    final externalKeys = await _parent._keep.externalStorage.getKeys();
+    final externalKeys = await _parent.externalStorage.getKeys();
 
     for (final storeName in externalKeys) {
       if (!storeName.startsWith(prefix)) {
@@ -128,7 +131,7 @@ class SubKeyManager<T> extends ChangeNotifier {
       }
 
       try {
-        final header = await _parent._keep.externalStorage.header(storeName);
+        final header = await _parent.externalStorage.header(storeName);
 
         if (header != null) {
           foundNames.add(header.name);

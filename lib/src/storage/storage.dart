@@ -10,7 +10,6 @@ import 'package:keep/src/utils/utils.dart';
 
 part 'storage_internal.dart';
 part 'storage_external.dart';
-part 'storage_internal_entry.dart';
 
 /// Abstract base class for solid storage implementations (Files, Cloud, etc.).
 abstract class KeepStorage {
@@ -53,8 +52,11 @@ abstract class KeepStorage {
   Future<void> clearRemovable();
 
   /// Reads metadata for the given [storeName] without loading full content.
-  Future<KeepHeader?> header(String storeName);
+  Future<KeepKeyHeader?> header(String storeName);
 
   /// Deletes all entries in this storage instance.
   FutureOr<void> clear();
+
+  /// Disposes resources held by the storage adapter.
+  Future<void> dispose();
 }

@@ -118,7 +118,7 @@ abstract class KeepKey<T> {
 
     try {
       if (useExternal) {
-        return _keep.externalStorage.exists(this);
+        return externalStorage.exists(this);
       }
 
       return _keep.internalStorage.exists(this);
@@ -142,7 +142,7 @@ abstract class KeepKey<T> {
   bool get existsSync {
     try {
       if (useExternal) {
-        return _keep.externalStorage.existsSync(this);
+        return externalStorage.existsSync(this);
       }
 
       return _keep.internalStorage.existsSync(this);
@@ -203,7 +203,7 @@ abstract class KeepKey<T> {
 
     try {
       if (useExternal) {
-        await _keep.externalStorage.remove(this);
+        await externalStorage.remove(this);
       } else {
         await _keep.internalStorage.remove(this);
       }

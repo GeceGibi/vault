@@ -12,33 +12,38 @@ part of 'codec.dart';
 /// ```
 class KeepCodecOf {
   /// Creates a codec wrapper by reading version from [bytes].
-  KeepCodecOf(this.bytes) {
-    // UnShift and read version
-    if (bytes.isEmpty) {
-      codec = KeepCodec._v1;
-      return;
-    }
+  ///
+  /// The bytes are unShifted once and cached for subsequent operations.
+  KeepCodecOf(Uint8List bytes) {
+    _data = bytes.isEmpty
+        ? Uint8List(0)
+        : KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
 
-    final data = KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
-
-    if (data.isEmpty) {
-      codec = KeepCodec._v1;
-      return;
-    }
-
-    final version = data[0];
-    codec = KeepCodec.forVersion(version);
+    codec = _data.isEmpty ? KeepCodec.current : KeepCodec.forVersion(_data[0]);
   }
 
-  /// The raw payload bytes.
-  final Uint8List bytes;
+  /// The unShifted payload bytes.
+  late final Uint8List _data;
 
   /// The selected codec instance for this payload.
   late final KeepCodec codec;
 
   /// Decodes the payload using the selected codec.
-  KeepInternalEntry? decode() => codec.decode(bytes);
+  KeepKeyValue? decode() => codec.decode(_data);
+
+  /// Encodes a single entry to the selected codec's version format.
+  Uint8List? encode({
+    required String storeName,
+    required String keyName,
+    required Object? value,
+    required int flags,
+  }) => KeepCodec.current.encode(
+    storeName: storeName,
+    keyName: keyName,
+    value: value,
+    flags: flags,
+  );
 
   /// Parses header metadata without full decoding.
-  KeepHeader? header() => codec.header(bytes);
+  KeepKeyHeader? header() => codec.header(_data);
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -43,11 +44,6 @@ class Keep {
   String get _hashedId {
     return KeepCodec.hash('keep-it-$id');
   }
-
-  /// Current binary format version of the keep storage.
-  @internal
-  @protected
-  static const int version = 1;
 
   /// Internal list of keys collected during class field initialization.
   static final List<KeepKey<dynamic>> _pendingKeys = [];
@@ -111,11 +107,15 @@ class Keep {
   /// The internal registry of all [KeepKey] instances managed by this [Keep].
   final Map<String, KeepKey<dynamic>> _registry = {};
 
+  /// Helper to register a key to the pending list.
+  static T _register<T extends KeepKey<dynamic>>(T key) {
+    _pendingKeys.add(key);
+    return key;
+  }
+
   // --- Static Key Factories ---
 
   /// Creates a standard [int] key.
-  ///
-  /// This key will store plain integer values in the internal storage.
   static KeepKeyPlain<int> kInt(
     String name, {
     bool removable = false,
@@ -124,42 +124,47 @@ class Keep {
     int? Function(Object? value)? fromStorage,
     Object? Function(int value)? toStorage,
   }) {
-    final key = KeepKeyPlain<int>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
+    return _register(
+      KeepKeyPlain<int>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: fromStorage,
+        toStorage: toStorage,
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates an encrypted [int] key.
-  ///
-  /// The value is automatically encrypted before being stored.
   static KeepKeySecure<int> kIntSecure(
     String name, {
     bool removable = false,
     bool useExternal = false,
     KeepStorage? storage,
+    int? Function(Object? value)? fromStorage,
+    Object? Function(int value)? toStorage,
   }) {
-    final key = KeepKeySecure<int>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      toStorage: (v) => v,
-      fromStorage: (v) => v is int ? v : (v is String ? int.tryParse(v) : null),
+    return _register(
+      KeepKeySecure<int>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        toStorage: toStorage ?? (v) => v,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          if (v is int) return v;
+          if (v is String) return int.tryParse(v);
+          return null;
+        },
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates a standard [String] key.
-  ///
-  /// This key will store plain string values in the internal storage.
   static KeepKeyPlain<String> kString(
     String name, {
     bool removable = false,
@@ -168,37 +173,42 @@ class Keep {
     String? Function(Object? value)? fromStorage,
     Object? Function(String value)? toStorage,
   }) {
-    final key = KeepKeyPlain<String>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
+    return _register(
+      KeepKeyPlain<String>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: fromStorage,
+        toStorage: toStorage,
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates an encrypted [String] key.
-  ///
-  /// The value is automatically encrypted before being stored.
   static KeepKeySecure<String> kStringSecure(
     String name, {
     bool removable = false,
     bool useExternal = false,
     KeepStorage? storage,
+    String? Function(Object? value)? fromStorage,
+    Object? Function(String value)? toStorage,
   }) {
-    final key = KeepKeySecure<String>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      toStorage: (v) => v,
-      fromStorage: (v) => v?.toString(),
+    return _register(
+      KeepKeySecure<String>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        toStorage: toStorage ?? (v) => v,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          return v?.toString();
+        },
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates a standard [bool] key.
@@ -210,37 +220,44 @@ class Keep {
     bool? Function(Object? value)? fromStorage,
     Object? Function(bool value)? toStorage,
   }) {
-    final key = KeepKeyPlain<bool>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
+    return _register(
+      KeepKeyPlain<bool>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: fromStorage,
+        toStorage: toStorage,
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates an encrypted [bool] key.
-  ///
-  /// The value is automatically encrypted before being stored.
   static KeepKeySecure<bool> kBoolSecure(
     String name, {
     bool removable = false,
     bool useExternal = false,
     KeepStorage? storage,
+    bool? Function(Object? value)? fromStorage,
+    Object? Function(bool value)? toStorage,
   }) {
-    final key = KeepKeySecure<bool>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      toStorage: (v) => v,
-      fromStorage: (v) => v is bool ? v : (v == 'true' || v == 1),
+    return _register(
+      KeepKeySecure<bool>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        toStorage: toStorage ?? (v) => v,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          if (v is bool) return v;
+          if (v == 'true' || v == 1) return true;
+          return false;
+        },
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates a standard [double] key.
@@ -252,38 +269,44 @@ class Keep {
     double? Function(Object? value)? fromStorage,
     Object? Function(double value)? toStorage,
   }) {
-    final key = KeepKeyPlain<double>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
+    return _register(
+      KeepKeyPlain<double>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: fromStorage,
+        toStorage: toStorage,
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates an encrypted [double] key.
-  ///
-  /// The value is automatically encrypted before being stored.
   static KeepKeySecure<double> kDoubleSecure(
     String name, {
     bool removable = false,
     bool useExternal = false,
     KeepStorage? storage,
+    double? Function(Object? value)? fromStorage,
+    Object? Function(double value)? toStorage,
   }) {
-    final key = KeepKeySecure<double>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      toStorage: (v) => v,
-      fromStorage: (v) =>
-          v is num ? v.toDouble() : (v is String ? double.tryParse(v) : null),
+    return _register(
+      KeepKeySecure<double>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        toStorage: toStorage ?? (v) => v,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          if (v is num) return v.toDouble();
+          if (v is String) return double.tryParse(v);
+          return null;
+        },
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates a standard [Map] key.
@@ -295,18 +318,21 @@ class Keep {
     Map<String, dynamic>? Function(Object? value)? fromStorage,
     Object? Function(Map<String, dynamic> value)? toStorage,
   }) {
-    final key = KeepKeyPlain<Map<String, dynamic>>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage:
-          fromStorage ?? (v) => v is Map ? v.cast<String, dynamic>() : null,
-      toStorage: toStorage,
+    return _register(
+      KeepKeyPlain<Map<String, dynamic>>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          return v is Map ? v.cast<String, dynamic>() : null;
+        },
+        toStorage: toStorage,
+      ),
     );
-
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates an encrypted [Map] key.
@@ -315,17 +341,24 @@ class Keep {
     bool removable = false,
     bool useExternal = false,
     KeepStorage? storage,
+    Map<String, dynamic>? Function(Object? value)? fromStorage,
+    Object? Function(Map<String, dynamic> value)? toStorage,
   }) {
-    final key = KeepKeySecure<Map<String, dynamic>>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      toStorage: (v) => v,
-      fromStorage: (v) => v is Map ? v.cast<String, dynamic>() : null,
+    return _register(
+      KeepKeySecure<Map<String, dynamic>>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        toStorage: toStorage ?? (v) => v,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          return v is Map ? v.cast<String, dynamic>() : null;
+        },
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates a standard [List] key.
@@ -337,17 +370,21 @@ class Keep {
     List<T>? Function(Object? value)? fromStorage,
     Object? Function(List<T> value)? toStorage,
   }) {
-    final key = KeepKeyPlain<List<T>>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage ?? (v) => v is List ? v.cast<T>() : null,
-      toStorage: toStorage,
+    return _register(
+      KeepKeyPlain<List<T>>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          return v is List ? v.cast<T>() : null;
+        },
+        toStorage: toStorage,
+      ),
     );
-
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates an encrypted [List] key.
@@ -356,17 +393,82 @@ class Keep {
     bool removable = false,
     bool useExternal = false,
     KeepStorage? storage,
+    List<T>? Function(Object? value)? fromStorage,
+    Object? Function(List<T> value)? toStorage,
   }) {
-    final key = KeepKeySecure<List<T>>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      toStorage: (v) => v,
-      fromStorage: (v) => v is List ? v.cast<T>() : null,
+    return _register(
+      KeepKeySecure<List<T>>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        toStorage: toStorage ?? (v) => v,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+          return v is List ? v.cast<T>() : null;
+        },
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
+  }
+
+  /// Creates a standard [Uint8List] key.
+  static KeepKeyPlain<Uint8List> kBytes(
+    String name, {
+    bool removable = false,
+    bool useExternal = false,
+    KeepStorage? storage,
+    Uint8List? Function(Object? value)? fromStorage,
+    Object? Function(Uint8List value)? toStorage,
+  }) {
+    return _register(
+      KeepKeyPlain<Uint8List>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+
+          if (v is String) return base64Decode(v);
+          if (v is List) return Uint8List.fromList(v.cast<int>());
+          return null;
+        },
+        toStorage: toStorage ?? base64Encode,
+      ),
+    );
+  }
+
+  /// Creates an encrypted [Uint8List] key.
+  static KeepKeySecure<Uint8List> kBytesSecure(
+    String name, {
+    bool removable = false,
+    bool useExternal = false,
+    KeepStorage? storage,
+    Uint8List? Function(Object? value)? fromStorage,
+    Object? Function(Uint8List value)? toStorage,
+  }) {
+    return _register(
+      KeepKeySecure<Uint8List>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        toStorage: toStorage ?? base64Encode,
+        fromStorage: (v) {
+          if (fromStorage != null) {
+            return fromStorage(v);
+          }
+
+          if (v is String) return base64Decode(v);
+          if (v is List) return Uint8List.fromList(v.cast<int>());
+          return null;
+        },
+      ),
+    );
   }
 
   /// Creates a custom plain key with specialized serialization.
@@ -378,16 +480,16 @@ class Keep {
     bool useExternal = false,
     KeepStorage? storage,
   }) {
-    final key = KeepKeyPlain<T>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
+    return _register(
+      KeepKeyPlain<T>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: fromStorage,
+        toStorage: toStorage,
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Creates a custom encrypted key with specialized serialization.
@@ -399,16 +501,16 @@ class Keep {
     bool useExternal = false,
     KeepStorage? storage,
   }) {
-    final key = KeepKeySecure<T>(
-      name: name,
-      removable: removable,
-      useExternal: useExternal,
-      storage: storage,
-      fromStorage: fromStorage,
-      toStorage: toStorage,
+    return _register(
+      KeepKeySecure<T>(
+        name: name,
+        removable: removable,
+        useExternal: useExternal,
+        storage: storage,
+        fromStorage: fromStorage,
+        toStorage: toStorage,
+      ),
     );
-    _pendingKeys.add(key);
-    return key;
   }
 
   /// Initializes the keep by creating directories and starting storage adapters.
@@ -473,10 +575,21 @@ class Keep {
   /// and all individual external files. Active listeners will be notified
   /// with a `null` value event.
   Future<void> clear() async {
+    await ensureInitialized;
+
     await externalStorage.clear();
     await internalStorage.clear();
 
     // Notify all keys in the registry so they can update their respective UI components.
     _registry.values.forEach(onChangeController.add);
+  }
+
+  /// Disposes resources held by this [Keep] instance.
+  ///
+  /// Call this when the [Keep] instance is no longer needed to prevent memory leaks.
+  Future<void> dispose() async {
+    await onChangeController.close();
+    await internalStorage.dispose();
+    await externalStorage.dispose();
   }
 }

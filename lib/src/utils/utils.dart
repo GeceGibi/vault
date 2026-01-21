@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -8,3 +8,4 @@ part 'type.dart';
 part 'codec.dart';
 part 'exception.dart';
 part 'widgets.dart';
+part 'writer_queue.dart';

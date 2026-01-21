@@ -28,6 +28,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   final Object? Function(T value)? toStorage;
 
   T? _cachedValue;
+  bool _hasCachedValue = false;
 
   @override
   KeepKeyPlain<T> call(String subKeyName) {
@@ -49,7 +50,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
   @override
   T? readSync() {
-    if (_cachedValue != null) {
+    if (_hasCachedValue) {
       return _cachedValue;
     }
 
@@ -61,9 +62,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
       if (raw == null) return null;
 
-      return _cachedValue ??= fromStorage != null
-          ? fromStorage!(raw)
-          : raw as T?;
+      _hasCachedValue = true;
+      return _cachedValue = fromStorage != null ? fromStorage!(raw) : raw as T?;
     } on KeepException<dynamic> {
       unawaited(remove());
       return null;
@@ -84,7 +84,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   Future<T?> read() async {
     await _keep.ensureInitialized;
 
-    if (_cachedValue != null) {
+    if (_hasCachedValue) {
       return _cachedValue;
     }
 
@@ -95,9 +95,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
       if (raw == null) return null;
 
-      return _cachedValue ??= fromStorage != null
-          ? fromStorage!(raw)
-          : raw as T?;
+      _hasCachedValue = true;
+      return _cachedValue = fromStorage != null ? fromStorage!(raw) : raw as T?;
     } on KeepException<dynamic> {
       unawaited(remove());
       return null;
@@ -120,6 +119,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
     // Invalidate cache
     _cachedValue = null;
+    _hasCachedValue = false;
 
     if (value == null) {
       await remove();
