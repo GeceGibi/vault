@@ -19,7 +19,7 @@ part 'sub_key_manager.dart';
 ///
 /// Implementations like [KeepKeyPlain] and [KeepKeySecure] define how the
 /// data is handled (e.g., plain JSON or encrypted).
-abstract class KeepKey<T> {
+abstract class KeepKey<T> with KeepCodecUtils {
   /// [name] is the unique identifier for this key.
   /// [removable] indicates if the key should be cleared by [Keep.clearRemovable].
   /// [useExternal] indicates if the value should be stored in its own file.
@@ -60,7 +60,7 @@ abstract class KeepKey<T> {
   ///
   /// This is the hashed version of [name].
   String get storeName {
-    final hashedName = KeepCodec.hash(name);
+    final hashedName = hash(name);
 
     if (_parent == null) {
       return hashedName;

@@ -1,3 +1,10 @@
+## 0.6.0
+- **Binary Codec (V2):** Switched from JSON-based encoding to `StandardMessageCodec` for significant performance gains and smaller storage footprint.
+- **Improved Performance:** Optimized binary serialization for complex and nested data structures.
+- **Auto-Migration:** Automatic seamless migration from V1 (JSON) to V2 (Binary) format on first write.
+- **Better Field Support:** Updated codec interface to use `Object?` for improved type precision.
+- **Stability:** Enhanced internal batch encoding logic for better memory efficiency.
+
 ## 0.5.3
 - Fixed race condition in atomic writes.
 - Fixed race condition in initialization.

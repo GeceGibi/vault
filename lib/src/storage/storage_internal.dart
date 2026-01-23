@@ -164,28 +164,25 @@ class KeepInternalStorage extends KeepStorage {
     try {
       final buffer = BytesBuilder();
 
-      entries.forEach((storeName, entry) {
-        final payloadBytes = KeepCodec.current.encode(
-          storeName: storeName,
+      for (final entry in entries.values) {
+        final payload = KeepCodec.current.encode(
+          storeName: entry.storeName,
           keyName: entry.name,
           flags: entry.flags,
           value: entry.value,
         );
 
-        if (payloadBytes == null) return;
-
-        final payloadLen = payloadBytes.length;
-
-        // Format: [PayloadLen(4)] [PayloadBytes(N)]
-        buffer
-          ..addByte((payloadLen >> 24) & 0xFF)
-          ..addByte((payloadLen >> 16) & 0xFF)
-          ..addByte((payloadLen >> 8) & 0xFF)
-          ..addByte(payloadLen & 0xFF)
-          ..add(payloadBytes);
-      });
-
-      return KeepCodec.shiftBytes(buffer.toBytes());
+        if (payload != null) {
+          final len = payload.length;
+          buffer
+            ..addByte(len >> 24 & 0xFF)
+            ..addByte(len >> 16 & 0xFF)
+            ..addByte(len >> 8 & 0xFF)
+            ..addByte(len & 0xFF)
+            ..add(payload);
+        }
+      }
+      return KeepCodec.current.shiftBytes(buffer.toBytes());
     } catch (error, stackTrace) {
       throw KeepException<dynamic>(
         'Failed to encode batch',
@@ -202,33 +199,31 @@ class KeepInternalStorage extends KeepStorage {
     }
 
     try {
-      final data = KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
+      final data = KeepCodec.current.unShiftBytes(bytes);
       final map = <String, KeepKeyValue>{};
       var offset = 0;
 
-      while (offset < data.length) {
-        if (offset + 4 > data.length) break;
-
-        final payloadLen =
-            ((data[offset] << 24) |
-                    (data[offset + 1] << 16) |
-                    (data[offset + 2] << 8) |
-                    (data[offset + 3]))
+      while (offset + 4 <= data.length) {
+        final len =
+            (data[offset] << 24 |
+                    data[offset + 1] << 16 |
+                    data[offset + 2] << 8 |
+                    data[offset + 3])
                 .toUnsigned(32);
+
         offset += 4;
+        if (offset + len > data.length) {
+          break;
+        }
 
-        if (offset + payloadLen > data.length) break;
-
-        final payloadBytes = data.sublist(offset, offset + payloadLen);
-        final entry = KeepCodec.of(payloadBytes).decode();
+        final entry = KeepCodec.of(data.sublist(offset, offset + len)).decode();
 
         if (entry != null) {
           map[entry.storeName] = entry;
         }
 
-        offset += payloadLen;
+        offset += len;
       }
-
       return map;
     } catch (error, stackTrace) {
       throw KeepException<dynamic>(

@@ -35,6 +35,7 @@ void main() {
     if (await tempDir.exists()) {
       await tempDir.delete(recursive: true);
     }
+
     await tempDir.create(recursive: true);
 
     keep = ChaosKeep('chaos_v1');

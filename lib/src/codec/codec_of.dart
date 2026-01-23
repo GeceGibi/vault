@@ -10,14 +10,14 @@ part of 'codec.dart';
 /// final codec = KeepCodec.of(bytes);
 /// final entry = codec.decode();
 /// ```
-class KeepCodecOf {
+class KeepCodecOf with KeepCodecUtils {
   /// Creates a codec wrapper by reading version from [bytes].
   ///
   /// The bytes are unShifted once and cached for subsequent operations.
   KeepCodecOf(Uint8List bytes) {
     _data = bytes.isEmpty
         ? Uint8List(0)
-        : KeepCodec.unShiftBytes(Uint8List.fromList(bytes));
+        : unShiftBytes(Uint8List.fromList(bytes));
 
     codec = _data.isEmpty ? KeepCodec.current : KeepCodec.forVersion(_data[0]);
   }

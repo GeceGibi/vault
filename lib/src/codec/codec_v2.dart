@@ -1,27 +1,28 @@
 part of 'codec.dart';
 
-/// Version 1 codec instance (default).
-final _keepCodecV1 = KeepCodecV1._();
+/// Version 2 codec instance.
+final _keepCodecV2 = KeepCodecV2._();
 
-/// Version 1 codec - the baseline Keep storage format.
+/// Version 2 codec - StandardMessageCodec-based binary format.
 ///
 /// **Binary Format:**
 /// ```
 /// [Version(1)][Flags(1)][Type(1)][StoreNameLen(1)][NameLen(1)]
-/// [StoreNameBytes(N)][NameBytes(N)][JSON(N)]
+/// [StoreNameBytes(N)][NameBytes(N)][StandardMessageCodec(N)]
 /// ```
 ///
-/// **Features:**
-/// - JSON serialization for universal type support
-/// - Bitwise rotation obfuscation for basic security
-/// - Type metadata in header for efficient filtering
-/// - Forward-compatible version byte
+/// **Changes from v1:**
+/// - Uses StandardMessageCodec instead of JSON for value encoding
+/// - More compact binary representation
+/// - Faster encode/decode (no string parsing)
 ///
-class KeepCodecV1 extends KeepCodec {
-  KeepCodecV1._();
+class KeepCodecV2 extends KeepCodec {
+  KeepCodecV2._();
+
+  final _standardCodec = const StandardMessageCodec();
 
   @override
-  int get version => 1;
+  int get version => 2;
 
   @override
   KeepKeyValue? decode(Uint8List data) {
@@ -50,10 +51,10 @@ class KeepCodecV1 extends KeepCodec {
       final originalKey = utf8.decode(data.sublist(offset, offset + nameLen));
       offset += nameLen;
 
-      // 4. Read JSON Value
-      final jsonBytes = data.sublist(offset);
-      final jsonString = utf8.decode(jsonBytes);
-      final value = jsonDecode(jsonString);
+      // 4. Read StandardMessageCodec Value
+      final valueBytes = data.sublist(offset);
+      final byteData = ByteData.sublistView(valueBytes);
+      final value = _standardCodec.decodeMessage(byteData);
 
       if (value == null) {
         return null;
@@ -65,10 +66,9 @@ class KeepCodecV1 extends KeepCodec {
         name: originalKey,
         storeName: storeName,
         version: version,
-        type: KeepType.fromByte(type),
+        type: .fromByte(type),
       );
     } catch (error) {
-      // Ignore legacy format or corrupted data
       return null;
     }
   }
@@ -82,8 +82,18 @@ class KeepCodecV1 extends KeepCodec {
   }) {
     try {
       final buffer = BytesBuilder();
-      final jsonString = jsonEncode(value);
-      final valBytes = utf8.encode(jsonString);
+
+      // Encode value with StandardMessageCodec
+      final valueByteData = _standardCodec.encodeMessage(value);
+
+      final valBytes = valueByteData != null
+          ? Uint8List.view(
+              valueByteData.buffer,
+              valueByteData.offsetInBytes,
+              valueByteData.lengthInBytes,
+            )
+          : Uint8List(0);
+
       final keyNameBytes = utf8.encode(keyName);
       final storeNameBytes = utf8.encode(storeName);
 
@@ -103,7 +113,7 @@ class KeepCodecV1 extends KeepCodec {
       // [NameLen(1)]
       // [StoreNameBytes(N)]
       // [NameBytes(N)]
-      // [JSON(N)]
+      // [StandardMessageCodec(N)]
 
       final type = KeepType.inferType(value);
 
@@ -143,14 +153,21 @@ class KeepCodecV1 extends KeepCodec {
       final nameLen = data[offset++];
 
       // 2. Read StoreName
-      if (offset + storeNameLen > data.length) return null;
+      if (offset + storeNameLen > data.length) {
+        return null;
+      }
+
       final storeName = utf8.decode(
         data.sublist(offset, offset + storeNameLen),
       );
+
       offset += storeNameLen;
 
       // 3. Read Name
-      if (offset + nameLen > data.length) return null;
+      if (offset + nameLen > data.length) {
+        return null;
+      }
+
       final name = utf8.decode(data.sublist(offset, offset + nameLen));
 
       return KeepKeyHeader(

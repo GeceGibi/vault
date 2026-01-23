@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:keep/src/codec/codec.dart';
 import 'package:keep/src/encrypter/encrypter.dart';
 import 'package:keep/src/key/key.dart';
 import 'package:keep/src/storage/storage.dart';
@@ -13,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 /// Simple, Singleton-based Keep storage with Field-Level Encryption support.
 ///
 /// Use [Keep.kInt], [Keep.kString], etc., to define your keys as class fields.
-class Keep {
+class Keep with KeepCodecUtils {
   /// Creates a new [Keep] instance.
   ///
   /// [id] is a unique identifier for this storage. It is used to derive
@@ -41,9 +40,7 @@ class Keep {
   final String id;
 
   /// Hashed name of the folder that stores the keep files.
-  String get _hashedId {
-    return KeepCodec.hash('keep-it-$id');
-  }
+  String get _hashedId => hash('keep-it-$id');
 
   /// Internal list of keys collected during class field initialization.
   static final List<KeepKey<dynamic>> _pendingKeys = [];

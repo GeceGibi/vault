@@ -12,7 +12,7 @@ part of 'codec.dart';
 @immutable
 class KeepKeyHeader {
   /// Creates a new keep entry with the given [value], [flags], optional [version] and [type].
-  KeepKeyHeader({
+  const KeepKeyHeader({
     required this.flags,
     required this.name,
     required this.storeName,
