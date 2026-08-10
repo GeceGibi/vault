@@ -111,6 +111,23 @@ class Keep with KeepCodecUtils {
   /// The internal registry of all [KeepKey] instances managed by this [Keep].
   final Map<String, KeepKey<dynamic>> _registry = {};
 
+  /// Shared value cache keyed by [KeepKey.storeName].
+  ///
+  /// Unlike the top-level keys tracked in [_registry], sub-keys created via
+  /// the `call()` operator are **not** memoized: every call returns a brand
+  /// new [KeepKey] instance. Keying the cache by `storeName` (instead of
+  /// holding the cached value directly on each [KeepKey] instance) ensures
+  /// that all instances pointing at the same underlying entry observe the
+  /// same cached value, and that a single [KeepKey.invalidateCache] call (or
+  /// a bulk [clear]/[clearRemovable]) invalidates every live reference —
+  /// including ones the caller still holds onto — not just the instance the
+  /// write/removal happened to go through.
+  ///
+  /// A key's presence in this map (checked via `containsKey`) distinguishes
+  /// "not cached yet" from "cached as `null`".
+  @internal
+  final Map<String, Object?> valueCache = {};
+
   /// Helper to register a key to the pending list.
   static T _register<T extends KeepKey<dynamic>>(T key) {
     _pendingKeys.add(key);
@@ -646,10 +663,17 @@ class Keep with KeepCodecUtils {
       externalStorage.clearRemovable(),
     ]);
 
-    // Invalidate caches and notify currently registered removable keys that
-    // their data has been cleared so any UI listening to these keys updates.
+    // Invalidate the entire shared value cache rather than only the
+    // registered removable keys: `valueCache` is keyed by `storeName`, so it
+    // also covers any live sub-key instances (created via `call()`, and
+    // therefore absent from `_registry`) pointing at removed entries. Wiping
+    // non-removable entries too is harmless — they simply get re-read (and
+    // re-cached) from storage on next access.
+    valueCache.clear();
+
+    // Notify currently registered removable keys that their data has been
+    // cleared so any UI listening to these keys updates.
     for (final key in removableKeys) {
-      key.invalidateCache();
       if (!onChangeController.isClosed) {
         onChangeController.add(key);
       }
@@ -667,9 +691,13 @@ class Keep with KeepCodecUtils {
     await externalStorage.clear();
     await internalStorage.clear();
 
-    // Invalidate caches for all known keys and notify listeners.
+    // Invalidate the entire shared value cache (see [valueCache]) so that
+    // every live KeepKey instance — including sub-keys not present in
+    // [_registry] — stops returning stale, pre-clear values.
+    valueCache.clear();
+
+    // Notify listeners for all known (registered) keys.
     for (final key in _registry.values) {
-      key.invalidateCache();
       if (!onChangeController.isClosed) {
         onChangeController.add(key);
       }

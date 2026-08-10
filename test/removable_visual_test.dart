@@ -27,7 +27,7 @@ class TestKeep extends Keep {
   final KeepKeyPlain<String> extNonRemovable = Keep.kString(
     'ext_non_removable',
     useExternal: true,
-    removable: true,
+    removable: false,
   );
 }
 
@@ -79,16 +79,25 @@ void main() {
 
     // Clear removable
     print('\n🗑️  Calling clearRemovable()...');
-    await Future.delayed(const Duration(seconds: 3));
     await storage.clearRemovable();
     listFiles('After clearRemovable()');
 
     // Verify
     print('\n--- Verification ---');
-    print('extRemovable1 exists: ${await storage.extRemovable1.exists}');
-    print('extRemovable2 exists: ${await storage.extRemovable2.exists}');
-    print('extNonRemovable exists: ${await storage.extNonRemovable.exists}');
-    print('extNonRemovable value: ${await storage.extNonRemovable.read()}');
+    final removable1Exists = await storage.extRemovable1.exists;
+    final removable2Exists = await storage.extRemovable2.exists;
+    final nonRemovableExists = await storage.extNonRemovable.exists;
+    final nonRemovableValue = await storage.extNonRemovable.read();
+
+    print('extRemovable1 exists: $removable1Exists');
+    print('extRemovable2 exists: $removable2Exists');
+    print('extNonRemovable exists: $nonRemovableExists');
+    print('extNonRemovable value: $nonRemovableValue');
+
+    expect(removable1Exists, isFalse);
+    expect(removable2Exists, isFalse);
+    expect(nonRemovableExists, isTrue);
+    expect(nonRemovableValue, 'value3');
 
     // Cleanup
     // await tempDir.delete(recursive: true);

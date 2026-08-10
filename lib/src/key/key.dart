@@ -175,14 +175,19 @@ abstract class KeepKey<T> with KeepCodecUtils {
     );
   }
 
-  /// Invalidates any in-memory cached value held by this key.
+  /// Invalidates any in-memory cached value held for this key.
   ///
-  /// Subclasses (e.g. [KeepKeyPlain], [KeepKeySecure]) override this to reset
-  /// their internal caches so that the next read consults the underlying
-  /// storage layer. Called automatically by [remove], [Keep.clear] and
+  /// The cache lives on the owning [Keep] instance (see `Keep.valueCache`),
+  /// keyed by [storeName] rather than by [KeepKey] instance. This matters
+  /// because sub-keys created via [call] are not memoized — every call
+  /// returns a new instance — so keying by `storeName` ensures every live
+  /// instance pointing at the same entry is invalidated together, not just
+  /// `this`. Called automatically by [remove], [Keep.clear] and
   /// [Keep.clearRemovable].
   @internal
-  void invalidateCache() {}
+  void invalidateCache() {
+    _keep.valueCache.remove(storeName);
+  }
 
   /// Atomically updates the value by reading the current value and writing
   /// the result of [updateFn].

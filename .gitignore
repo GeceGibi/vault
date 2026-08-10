@@ -34,3 +34,4 @@ migrate_working_dir/
 # Test data
 test/keep_data_inspect/
 test/keep_stress/
+test/removable_visual_data/

@@ -27,15 +27,6 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   /// Optional converter from typed object [T] to storage.
   final Object? Function(T value)? toStorage;
 
-  T? _cachedValue;
-  bool _hasCachedValue = false;
-
-  @override
-  void invalidateCache() {
-    _cachedValue = null;
-    _hasCachedValue = false;
-  }
-
   @override
   KeepKeyPlain<T> call(String subKeyName) {
     final key =
@@ -56,8 +47,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
 
   @override
   T? readSync() {
-    if (_hasCachedValue) {
-      return _cachedValue;
+    if (_keep.valueCache.containsKey(storeName)) {
+      return _keep.valueCache[storeName] as T?;
     }
 
     try {
@@ -67,12 +58,12 @@ class KeepKeyPlain<T> extends KeepKey<T> {
       };
 
       if (raw == null) {
-        _hasCachedValue = true;
-        return _cachedValue = null;
+        return _keep.valueCache[storeName] = null;
       }
 
-      _hasCachedValue = true;
-      return _cachedValue = fromStorage != null ? fromStorage!(raw) : raw as T?;
+      final value = fromStorage != null ? fromStorage!(raw) : raw as T?;
+      _keep.valueCache[storeName] = value;
+      return value;
     } on KeepException<dynamic> {
       return null;
     } catch (error, stackTrace) {
@@ -91,8 +82,8 @@ class KeepKeyPlain<T> extends KeepKey<T> {
   Future<T?> read() async {
     await _keep.ensureInitialized;
 
-    if (_hasCachedValue) {
-      return _cachedValue;
+    if (_keep.valueCache.containsKey(storeName)) {
+      return _keep.valueCache[storeName] as T?;
     }
 
     try {
@@ -101,12 +92,12 @@ class KeepKeyPlain<T> extends KeepKey<T> {
           : _keep.internalStorage.read<dynamic>(this));
 
       if (raw == null) {
-        _hasCachedValue = true;
-        return _cachedValue = null;
+        return _keep.valueCache[storeName] = null;
       }
 
-      _hasCachedValue = true;
-      return _cachedValue = fromStorage != null ? fromStorage!(raw) : raw as T?;
+      final value = fromStorage != null ? fromStorage!(raw) : raw as T?;
+      _keep.valueCache[storeName] = value;
+      return value;
     } on KeepException<dynamic> {
       return null;
     } catch (error, stackTrace) {
@@ -137,8 +128,7 @@ class KeepKeyPlain<T> extends KeepKey<T> {
           await _keep.internalStorage.write(this, storageValue);
         }
 
-        _cachedValue = value;
-        _hasCachedValue = true;
+        _keep.valueCache[storeName] = value;
       } on KeepException<dynamic> {
         rethrow;
       } catch (error, stackTrace) {

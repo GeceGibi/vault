@@ -49,19 +49,10 @@ class KeepKeySecure<T> extends KeepKey<T> {
   /// Converts typed object [T] to raw storage data.
   final Object? Function(T value) toStorage;
 
-  T? _cachedValue;
-  bool _hasCachedValue = false;
-
-  @override
-  void invalidateCache() {
-    _cachedValue = null;
-    _hasCachedValue = false;
-  }
-
   @override
   T? readSync() {
-    if (_hasCachedValue) {
-      return _cachedValue;
+    if (_keep.valueCache.containsKey(storeName)) {
+      return _keep.valueCache[storeName] as T?;
     }
 
     try {
@@ -71,15 +62,15 @@ class KeepKeySecure<T> extends KeepKey<T> {
       };
 
       if (encrypted == null) {
-        _hasCachedValue = true;
-        return _cachedValue = null;
+        return _keep.valueCache[storeName] = null;
       }
 
       final decrypted = _keep.encrypter.decryptSync(encrypted);
       final decoded = jsonDecode(decrypted);
 
-      _hasCachedValue = true;
-      return _cachedValue = fromStorage(decoded);
+      final value = fromStorage(decoded);
+      _keep.valueCache[storeName] = value;
+      return value;
     } on KeepException<dynamic> {
       return null;
     } catch (error, stackTrace) {
@@ -99,8 +90,8 @@ class KeepKeySecure<T> extends KeepKey<T> {
   Future<T?> read() async {
     await _keep.ensureInitialized;
 
-    if (_hasCachedValue) {
-      return _cachedValue;
+    if (_keep.valueCache.containsKey(storeName)) {
+      return _keep.valueCache[storeName] as T?;
     }
 
     try {
@@ -110,15 +101,15 @@ class KeepKeySecure<T> extends KeepKey<T> {
       };
 
       if (encrypted == null) {
-        _hasCachedValue = true;
-        return _cachedValue = null;
+        return _keep.valueCache[storeName] = null;
       }
 
       final decrypted = await _keep.encrypter.decrypt(encrypted);
       final decoded = await compute(jsonDecode, decrypted);
 
-      _hasCachedValue = true;
-      return _cachedValue = fromStorage(decoded);
+      final value = fromStorage(decoded);
+      _keep.valueCache[storeName] = value;
+      return value;
     } on KeepException<dynamic> {
       return null;
     } catch (error, stackTrace) {
@@ -154,8 +145,7 @@ class KeepKeySecure<T> extends KeepKey<T> {
           await _keep.internalStorage.write(this, encrypted);
         }
 
-        _cachedValue = value;
-        _hasCachedValue = true;
+        _keep.valueCache[storeName] = value;
       } on KeepException<dynamic> {
         rethrow;
       } catch (error, stackTrace) {

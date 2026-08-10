@@ -1,3 +1,34 @@
+## 1.0.1
+
+This release fixes a reactivity/data-integrity bug affecting **dynamic sub-keys**
+(keys created via the `call()` operator, e.g. `parent('alice')`). No public API
+changes; existing code keeps working as-is.
+
+### Reactivity & Caching
+
+- **Bug Fix:** Sub-key instances now share a single value cache keyed by
+  `storeName` instead of caching the value on each `KeepKey` object
+  individually. Previously, since `call()` returns a brand new instance on
+  every invocation (sub-keys are not memoized), two instances pointing at the
+  same underlying entry could disagree: writing through one instance (or a
+  `KeepBuilder`'s internal reload) would not be observed by another instance
+  already holding a cached value, causing `read()`/`readSync()` to return
+  stale data and reactive widgets to miss updates.
+- **Bug Fix:** `Keep.clear()` and `Keep.clearRemovable()` now invalidate the
+  entire shared value cache, not just the top-level keys tracked in the
+  registry. Previously, a `KeepKey` sub-key instance held by the caller (e.g.
+  a cached auth-token sub-key) could keep returning its pre-clear value from
+  `read()`/`readSync()` even after the underlying data was deleted from disk,
+  because sub-keys are never registered in `Keep`'s top-level key registry.
+
+### Testing
+
+- Fixed `test/removable_visual_test.dart`: the `extNonRemovable` key was
+  mistakenly declared with `removable: true`, so the test never actually
+  exercised the "non-removable keys survive `clearRemovable()`" case. It now
+  uses `removable: false` and asserts the expected outcome instead of only
+  printing it.
+
 ## 1.0.0
 
 This is a major release focused on **data durability**, **reactivity correctness**,
